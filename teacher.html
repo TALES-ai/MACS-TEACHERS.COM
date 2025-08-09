@@ -1,12 +1,50 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Portal - MACS SCHOOLS EA</title>
+  <title>Teacher Portal - Guide - MACS SCHOOLS EA</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     body {
@@ -59,7 +97,7 @@
     .sidebar a i, .sidebar button i {
       margin-right: 10px;
     }
-    .sidebar a:hover, .sidebar button:hover {
+    .sidebar a:hover, .sidebar button:hover, .sidebar a.active {
       background: rgba(255, 255, 255, 0.3);
     }
     .main-content {
@@ -67,15 +105,11 @@
       padding: 30px;
     }
     .section {
-      display: none;
       background: #fff;
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
-    }
-    .section.active {
-      display: block;
     }
     .section h1 {
       font-size: 28px;
@@ -86,103 +120,6 @@
     }
     .section h1 i {
       margin-right: 10px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      border: 1px solid #ddd;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 12px;
-      text-align: left;
-    }
-    th {
-      background: #6b48ff;
-      color: #fff;
-    }
-    tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-    @media (max-width: 768px) {
-      table {
-        display: block;
-        overflow-x: auto;
-      }
-      .sidebar {
-        width: 200px;
-      }
-      .main-content {
-        padding: 15px;
-      }
-    }
-    select, input, textarea {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    button {
-      padding: 12px 20px;
-      background: linear-gradient(to right, #ff6f61, #ff9f61);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s;
-      display: flex;
-      align-items: center;
-    }
-    button i {
-      margin-right: 8px;
-    }
-    button:hover {
-      background: linear-gradient(to right, #ff9f61, #ff6f61);
-    }
-    .pdf-btn {
-      padding: 8px 15px;
-      background: #27ae60;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-left: 10px;
-    }
-    .pdf-btn:hover {
-      background: #219653;
-    }
-    .excel-btn {
-      padding: 8px 15px;
-      background: #3498db;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-left: 10px;
-    }
-    .excel-btn:hover {
-      background: #2980b9;
-    }
-    .error-message {
-      color: #ff4444;
-      font-size: 16px;
-      margin: 15px 0;
-      padding: 10px;
-      background: #ffebee;
-      border-radius: 5px;
-    }
-    .success-message {
-      color: #00cc00;
-      font-size: 16px;
-      margin: 15px 0;
-      padding: 10px;
-      background: #e8f5e9;
-      border-radius: 5px;
     }
     .popup {
       position: fixed;
@@ -206,6 +143,22 @@
       z-index: 1000;
       display: none;
     }
+    .error-message {
+      color: #ff4444;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #ffebee;
+      border-radius: 5px;
+    }
+    .success-message {
+      color: #00cc00;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #e8f5e9;
+      border-radius: 5px;
+    }
     .loading-screen {
       position: fixed;
       top: 0;
@@ -221,51 +174,40 @@
     .loading-screen.hidden {
       display: none;
     }
-    .add-student-form {
-      display: block;
+    .dropdown {
+      margin-bottom: 15px;
     }
-    .form-section {
-      margin-bottom: 20px;
-      padding: 15px;
-      background: #f9f9f9;
-      border-radius: 8px;
-      border-left: 4px solid #6b48ff;
-    }
-    .form-section h3 {
-      font-size: 18px;
-      color: #6b48ff;
-      margin-bottom: 10px;
-    }
-    .form-section label {
-      display: flex;
-      align-items: center;
-      margin-bottom: 5px;
-      font-weight: 600;
-    }
-    .form-section label i {
-      margin-right: 8px;
-      color: #6b48ff;
-    }
-    .full-width {
-      grid-column: span 2;
-    }
-    .search-bar {
+    .dropdown select {
       width: 100%;
-      max-width: 300px;
-      margin-bottom: 10px;
+      padding: 10px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+      background: #fff;
+      transition: border-color 0.3s;
     }
-    .subject-row {
-      display: flex;
-      align-items: center;
-      gap: 15px;
+    .dropdown select:hover {
+      border-color: #6b48ff;
     }
-    .subject-row input[type="number"],
-    .subject-row input[type="text"] {
-      width: 80px;
-      margin-left: 5px;
+    .dropdown-content {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
-    .scores-table {
-      margin-top: 15px;
+    .dropdown-content.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .dropdown-content p {
+      margin: 5px 0;
+      line-height: 1.5;
     }
     .guide-section {
       margin-top: 20px;
@@ -277,44 +219,6 @@
     .guide-section h2 {
       color: #6b48ff;
       margin-bottom: 10px;
-    }
-    .dropdown {
-      margin-bottom: 15px;
-    }
-    .dropdown select {
-      width: 100%;
-      padding: 8px;
-      border: 2px solid #ccc;
-      border-radius: 5px;
-      font-size: 14px;
-    }
-    .dropdown-content {
-      display: none;
-      margin-top: 10px;
-      padding: 10px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-    .dropdown-content.show {
-      display: block;
-    }
-    .dropdown-content p {
-      margin: 5px 0;
-      line-height: 1.5;
-    }
-    .results-table {
-      width: 100%;
-      overflow-x: auto;
-    }
-    .results-table th, .results-table td {
-      white-space: nowrap;
-      padding: 8px;
-    }
-    .marks-table input[type="number"],
-    .marks-table input[type="text"] {
-      width: 80px;
-      margin: 0 5px;
     }
   </style>
 </head>
@@ -331,16 +235,16 @@
         <p id="teacherName">Loading...</p>
       </div>
       <h2>Teacher Portal</h2>
-      <a href="#" onclick="showSection('guide')"><i class="fas fa-info-circle"></i> Guide</a>
-      <a href="#" onclick="showSection('students')"><i class="fas fa-users"></i> Students</a>
-      <a href="#" onclick="showSection('addStudent')"><i class="fas fa-user-plus"></i> Add Student</a>
-      <a href="#" onclick="showSection('marks')"><i class="fas fa-chart-line"></i> Upload Marks</a>
-      <a href="#" onclick="showSection('announcements')"><i class="fas fa-bullhorn"></i> Announcements</a>
-      <a href="#" onclick="showSection('results')"><i class="fas fa-file-alt"></i> Results</a>
+      <a href="guide.html" class="active"><i class="fas fa-info-circle"></i> Guide</a>
+      <a href="students.html"><i class="fas fa-users"></i> Students</a>
+      <a href="add-student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+      <a href="marks.html"><i class="fas fa-chart-line"></i> Upload Marks</a>
+      <a href="announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a>
+      <a href="results.html"><i class="fas fa-file-alt"></i> Results</a>
       <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
     </div>
     <div class="main-content">
-      <div id="guide" class="section active">
+      <div id="guide" class="section">
         <h1><i class="fas fa-info-circle"></i> Teacher Guide</h1>
         <div class="guide-section">
           <h2>Welcome to the Teacher Portal!</h2>
@@ -378,173 +282,10 @@
           </div>
         </div>
       </div>
-      <div id="students" class="section">
-        <h1><i class="fas fa-users"></i> Students</h1>
-        <input type="text" id="searchStudent" class="search-bar" placeholder="Search by Reg No or Name..." onkeyup="searchStudents()">
-        <select id="yearSelect" onchange="loadStudents()">
-          <option value="preprimary1">Pre-Primary 1</option>
-          <option value="preprimary2">Pre-Primary 2</option>
-          <option value="grade1">Grade 1</option>
-          <option value="grade2">Grade 2</option>
-          <option value="grade3">Grade 3</option>
-          <option value="grade4">Grade 4</option>
-          <option value="grade5">Grade 5</option>
-          <option value="grade6">Grade 6</option>
-          <option value="grade7">Grade 7</option>
-          <option value="grade8">Grade 8</option>
-          <option value="grade9">Grade 9</option>
-        </select>
-        <div id="studentsMessage" class="error-message"></div>
-        <table id="studentsTable">
-          <thead>
-            <tr>
-              <th>Reg No</th>
-              <th>Name</th>
-              <th>Stream</th>
-              <th>Class</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="studentsBody"></tbody>
-        </table>
-      </div>
-      <div id="addStudent" class="section">
-        <h1><i class="fas fa-user-plus"></i> Add Student</h1>
-        <div class="add-student-form">
-          <div class="form-section">
-            <h3>Personal Information</h3>
-            <label><i class="fas fa-id-card"></i> Reg No</label><input id="newRegNo" type="text" placeholder="Reg No (e.g., AID/00119/025)" class="full-width" required>
-            <label><i class="fas fa-user"></i> Name</label><input id="newName" type="text" placeholder="Full Name" required>
-            <label><i class="fas fa-venus-mars"></i> Gender</label><select id="newGender" required>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-            <label><i class="fas fa-praying-hands"></i> Religion</label><select id="newReligion" required>
-              <option value="Christian">Christian</option>
-              <option value="Muslim">Muslim</option>
-              <option value="Hindu">Hindu</option>
-              <option value="Other">Other</option>
-            </select>
-            <label><i class="fas fa-graduation-cap"></i> Class</label><select id="newYear" required>
-              <option value="preprimary1">Pre-Primary 1</option>
-              <option value="preprimary2">Pre-Primary 2</option>
-              <option value="grade1">Grade 1</option>
-              <option value="grade2">Grade 2</option>
-              <option value="grade3">Grade 3</option>
-              <option value="grade4">Grade 4</option>
-              <option value="grade5">Grade 5</option>
-              <option value="grade6">Grade 6</option>
-              <option value="grade7">Grade 7</option>
-              <option value="grade8">Grade 8</option>
-              <option value="grade9">Grade 9</option>
-            </select>
-            <label><i class="fas fa-stream"></i> Stream</label><input id="newStream" type="text" placeholder="Stream (e.g., Victors)" required>
-            <label><i class="fas fa-lock"></i> Password</label><input id="newPassword" type="password" placeholder="Password" required>
-          </div>
-          <div class="form-section">
-            <h3>Contact Information</h3>
-            <label><i class="fas fa-phone"></i> Phone Number</label><input id="newPhone" type="tel" placeholder="Phone (e.g., 0712345678)" required>
-            <label><i class="fas fa-envelope"></i> Email</label><input id="newEmail" type="email" placeholder="Student Email" required>
-            <label><i class="fas fa-phone-alt"></i> Emergency Contact</label><input id="newEmergencyContact" type="tel" placeholder="Emergency Contact" required>
-          </div>
-          <div class="form-section">
-            <h3>Parental Information</h3>
-            <label><i class="fas fa-users"></i> Parent Name</label><input id="newParentName" type="text" placeholder="Parent Name" required>
-            <label><i class="fas fa-phone"></i> Parent Phone</label><input id="newParentPhone" type="tel" placeholder="Parent Phone" required>
-            <label><i class="fas fa-envelope"></i> Parent Email</label><input id="newParentEmail" type="email" placeholder="Parent Email" required>
-            <label><i class="fas fa-briefcase"></i> Parent Occupation</label><input id="newParentOccupation" type="text" placeholder="Parent Occupation" required>
-            <label><i class="fas fa-heart"></i> Parent Marital Status</label><select id="newParentMaritalStatus" required>
-              <option value="Married">Married</option>
-              <option value="Single">Single</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Widowed">Widowed</option>
-            </select>
-            <label><i class="fas fa-user-tie"></i> Guardian Relationship</label><input id="newGuardianRelationship" type="text" placeholder="Relationship (e.g., Father)" required>
-          </div>
-          <div class="form-section">
-            <h3>Residence Information</h3>
-            <label><i class="fas fa-map-marker-alt"></i> County</label><input id="newCounty" type="text" placeholder="County (e.g., Kisii)" required>
-            <label><i class="fas fa-home"></i> Physical Address</label><textarea id="newAddress" placeholder="Physical Address" required></textarea>
-            <label><i class="fas fa-city"></i> Town</label><input id="newTown" type="text" placeholder="Town/City" required>
-          </div>
-          <div class="form-section">
-            <h3>Financial Information</h3>
-            <label><i class="fas fa-hand-holding-usd"></i> Sponsor</label><input id="newSponsor" type="text" placeholder="Sponsor (e.g., Self/Church)" required>
-            <label><i class="fas fa-money-bill-wave"></i> Total Fees</label><input id="newTotalFees" type="number" placeholder="Total Expected Fees (KES)" required>
-          </div>
-          <button onclick="addStudent()" class="full-width"><i class="fas fa-plus"></i> Add Student</button>
-        </div>
-        <div id="addStudentMessage" class="error-message"></div>
-      </div>
-      <div id="marks" class="section">
-        <h1><i class="fas fa-chart-line"></i> Upload Marks</h1>
-        <select id="marksYearSelect" onchange="updateSubjectOptions(); loadMarksForm()">
-          <option value="">Select Class</option>
-          <option value="preprimary1">Pre-Primary 1</option>
-          <option value="preprimary2">Pre-Primary 2</option>
-          <option value="grade1">Grade 1</option>
-          <option value="grade2">Grade 2</option>
-          <option value="grade3">Grade 3</option>
-          <option value="grade4">Grade 4</option>
-          <option value="grade5">Grade 5</option>
-          <option value="grade6">Grade 6</option>
-          <option value="grade7">Grade 7</option>
-          <option value="grade8">Grade 8</option>
-          <option value="grade9">Grade 9</option>
-        </select>
-        <select id="marksSubjectSelect" onchange="loadMarksForm()">
-          <option value="">Select a Subject</option>
-        </select>
-        <select id="termSelect" onchange="loadMarksForm()">
-          <option value="term1">Term 1</option>
-          <option value="term2">Term 2</option>
-          <option value="term3">Term 3</option>
-        </select>
-        <div id="marksTable" class="scores-table"></div>
-        <button id="saveMarksBtn" onclick="saveMarks()"><i class="fas fa-save"></i> Save Marks</button>
-        <div id="marksMessage" class="error-message"></div>
-      </div>
-      <div id="announcements" class="section">
-        <h1 style="font-size: 28px; color: #333;"><i class="fas fa-bullhorn"></i> Announcements</h1>
-        <select id="announcementType" onchange="loadAnnouncementForm()">
-          <option value="general">General</option>
-          <option value="individual">Individual</option>
-        </select>
-        <select id="announcementStudent" style="display: none;"></select>
-        <input id="announcementTitle" type="text" placeholder="Title">
-        <textarea id="announcementMessage" placeholder="Message"></textarea>
-        <button onclick="addAnnouncement()">Add Announcement</button>
-        <div id="announcementsMessage" class="error-message"></div>
-      </div>
-      <div id="results" class="section">
-        <h1><i class="fas fa-file-alt"></i> Results</h1>
-        <select id="resultsYearSelect" onchange="loadResults()">
-          <option value="">Select Class</option>
-          <option value="preprimary1">Pre-Primary 1</option>
-          <option value="preprimary2">Pre-Primary 2</option>
-          <option value="grade1">Grade 1</option>
-          <option value="grade2">Grade 2</option>
-          <option value="grade3">Grade 3</option>
-          <option value="grade4">Grade 4</option>
-          <option value="grade5">Grade 5</option>
-          <option value="grade6">Grade 6</option>
-          <option value="grade7">Grade 7</option>
-          <option value="grade8">Grade 8</option>
-          <option value="grade9">Grade 9</option>
-        </select>
-        <div id="resultsMessage" class="error-message"></div>
-        <div id="resultsTableContainer" class="results-table">
-          <table id="resultsTable">
-            <thead id="resultsTableHead"></thead>
-            <tbody id="resultsBody"></tbody>
-          </table>
-        </div>
-        <button id="downloadResultsPdfBtn" onclick="downloadResultsPDF()" class="pdf-btn"><i class="fas fa-file-pdf"></i> Download PDF</button>
-        <button id="downloadResultsExcelBtn" onclick="downloadResultsExcel()" class="excel-btn"><i class="fas fa-file-excel"></i> Download Excel</button>
-      </div>
     </div>
   </div>
 
+  <script src="common.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
@@ -558,120 +299,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.database();
-
-    const loadingScreen = document.getElementById("loadingScreen");
-    const popupOverlay = document.getElementById("popupOverlay");
-    const popupMessage = document.getElementById("popupMessage");
-
-    const subjectsByGrade = {
-      preprimary1: [
-        "Language Activities",
-        "Mathematics Activities",
-        "Environmental Activities",
-        "Kiswahili Activities",
-        "Creative Activities",
-        "Literacy Activities"
-      ],
-      preprimary2: [
-        "Language Activities",
-        "Mathematics Activities",
-        "Environmental Activities",
-        "Kiswahili Activities",
-        "Creative Activities",
-        "Literacy Activities"
-      ],
-      grade1: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Environmental Activities",
-        "CRE",
-        "Creative Arts"
-      ],
-      grade2: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Environmental Activities",
-        "CRE",
-        "Creative Arts"
-      ],
-      grade3: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Environmental Activities",
-        "CRE",
-        "Creative Arts"
-      ],
-      grade4: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Integrated Science",
-        "Pre-Technical Studies",
-        "Social Studies",
-        "Creative Arts",
-        "Agriculture",
-        "CRE"
-      ],
-      grade5: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Integrated Science",
-        "Pre-Technical Studies",
-        "Social Studies",
-        "Creative Arts",
-        "Agriculture",
-        "CRE"
-      ],
-      grade6: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Integrated Science",
-        "Pre-Technical Studies",
-        "Social Studies",
-        "Creative Arts",
-        "Agriculture",
-        "CRE"
-      ],
-      grade7: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Integrated Science",
-        "Pre-Technical Studies",
-        "Social Studies",
-        "Creative Arts",
-        "Agriculture",
-        "CRE"
-      ],
-      grade8: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Integrated Science",
-        "Pre-Technical Studies",
-        "Social Studies",
-        "Creative Arts",
-        "Agriculture",
-        "CRE"
-      ],
-      grade9: [
-        "Mathematics Activities",
-        "English Activities",
-        "Kiswahili Activities",
-        "Integrated Science",
-        "Pre-Technical Studies",
-        "Social Studies",
-        "Creative Arts",
-        "Agriculture",
-        "CRE"
-      ]
-    };
 
     auth.onAuthStateChanged(user => {
       if (!user || localStorage.getItem("userType") !== "teacher") {
@@ -680,857 +307,9 @@
       } else {
         const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
         document.getElementById("teacherName").textContent = teacherName;
-        console.log(`Teacher dashboard loaded: teacherName=${teacherName}, email=${user.email}, uid=${user.uid}`);
+        document.getElementById("loadingScreen").classList.add("hidden");
       }
     });
-
-    function showSection(section) {
-      document.querySelectorAll(".section").forEach(div => div.classList.remove("active"));
-      document.getElementById(section).classList.add("active");
-    }
-
-    function showMessage(elementId, message, isError = true) {
-      const messageDiv = document.getElementById(elementId);
-      messageDiv.textContent = message;
-      messageDiv.style.color = isError ? "#ff4444" : "#00cc00";
-      messageDiv.style.display = "block";
-      setTimeout(() => {
-        messageDiv.style.display = "none";
-      }, 3000);
-    }
-
-    function showPopup(message, isError = true) {
-      popupMessage.textContent = message;
-      popupMessage.className = isError ? "error-message" : "success-message";
-      popupOverlay.style.display = "block";
-      popupMessage.style.display = "block";
-      setTimeout(hidePopup, isError ? 3000 : 5000);
-    }
-
-    function hidePopup() {
-      popupOverlay.style.display = "none";
-      popupMessage.style.display = "none";
-    }
-
-    function validateRegNo(regNo) {
-      const invalidChars = /[.#$\[\]]/;
-      return !invalidChars.test(regNo);
-    }
-
-    async function addStudent() {
-      const regNo = document.getElementById("newRegNo").value.trim();
-      const normalizedRegNo = regNo.replace(/\//g, "_");
-      const name = document.getElementById("newName").value.trim();
-      const password = document.getElementById("newPassword").value.trim();
-      const form = document.getElementById("newYear").value;
-      const stream = document.getElementById("newStream").value.trim();
-      const gender = document.getElementById("newGender").value;
-      const religion = document.getElementById("newReligion").value;
-      const phone = document.getElementById("newPhone").value.trim();
-      const email = document.getElementById("newEmail").value.trim();
-      const emergencyContact = document.getElementById("newEmergencyContact").value.trim();
-      const parentName = document.getElementById("newParentName").value.trim();
-      const parentPhone = document.getElementById("newParentPhone").value.trim();
-      const parentEmail = document.getElementById("newParentEmail").value.trim();
-      const parentOccupation = document.getElementById("newParentOccupation").value.trim();
-      const parentMaritalStatus = document.getElementById("newParentMaritalStatus").value;
-      const guardianRelationship = document.getElementById("newGuardianRelationship").value.trim();
-      const county = document.getElementById("newCounty").value.trim();
-      const address = document.getElementById("newAddress").value.trim();
-      const town = document.getElementById("newTown").value.trim();
-      const sponsor = document.getElementById("newSponsor").value.trim();
-      const totalFees = parseInt(document.getElementById("newTotalFees").value);
-
-      if (!regNo || !name || !password || !form || !stream || !gender || !religion || !phone || !email || !emergencyContact || !parentName || !parentPhone || !parentEmail || !parentOccupation || !parentMaritalStatus || !guardianRelationship || !county || !address || !town || !sponsor || !totalFees) {
-        showPopup("All fields are required.", true);
-        return;
-      }
-
-      if (!validateRegNo(normalizedRegNo)) {
-        showPopup("Invalid Reg No format. Avoid '.', '#', '$', '[', or ']'.", true);
-        return;
-      }
-
-      try {
-        const studentRef = db.ref("users/students/" + normalizedRegNo);
-        const snapshot = await studentRef.once("value");
-        if (snapshot.exists()) {
-          showPopup("Reg No already exists.", true);
-          return;
-        }
-
-        const newStudent = {
-          profile: {
-            name,
-            password,
-            gender,
-            religion,
-            phone,
-            email,
-            emergencyContact,
-            parentName,
-            parentPhone,
-            parentEmail,
-            parentOccupation,
-            parentMaritalStatus,
-            guardianRelationship,
-            county,
-            address,
-            town
-          },
-          form,
-          stream,
-          fees: {
-            sponsor,
-            totalExpected: totalFees,
-            transactions: []
-          },
-          academics: {},
-          marks: {}
-        };
-
-        await studentRef.set(newStudent);
-        showPopup("Student added successfully!", false);
-        document.getElementById("newRegNo").value = "";
-        document.getElementById("newName").value = "";
-        document.getElementById("newGender").value = "Male";
-        document.getElementById("newReligion").value = "Christian";
-        document.getElementById("newYear").value = "preprimary1";
-        document.getElementById("newStream").value = "";
-        document.getElementById("newPassword").value = "";
-        document.getElementById("newPhone").value = "";
-        document.getElementById("newEmail").value = "";
-        document.getElementById("newEmergencyContact").value = "";
-        document.getElementById("newParentName").value = "";
-        document.getElementById("newParentPhone").value = "";
-        document.getElementById("newParentEmail").value = "";
-        document.getElementById("newParentOccupation").value = "";
-        document.getElementById("newParentMaritalStatus").value = "Married";
-        document.getElementById("newGuardianRelationship").value = "";
-        document.getElementById("newCounty").value = "";
-        document.getElementById("newAddress").value = "";
-        document.getElementById("newTown").value = "";
-        document.getElementById("newSponsor").value = "";
-        document.getElementById("newTotalFees").value = "";
-        await loadStudents();
-      } catch (error) {
-        console.error("Add student error:", error);
-        showPopup(`Failed to add student: ${error.message}`, true);
-      }
-    }
-
-    async function loadStudents() {
-      const form = document.getElementById("yearSelect").value;
-      const studentsBody = document.getElementById("studentsBody");
-      studentsBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
-
-      try {
-        const snapshot = await db.ref("users/students").once("value");
-        const students = snapshot.val() || {};
-        let studentsList = [];
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          if (student.form === form) {
-            studentsList.push({
-              regNo,
-              name: student.profile.name,
-              stream: student.stream,
-              form: student.form
-            });
-          }
-        });
-
-        studentsBody.innerHTML = "";
-        if (studentsList.length === 0) {
-          studentsBody.innerHTML = `<tr><td colspan="5">No students found in ${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}.</td></tr>`;
-          return;
-        }
-
-        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
-        studentsList.forEach(student => {
-          studentsBody.innerHTML += `<tr>
-            <td>${student.regNo}</td>
-            <td>${student.name}</td>
-            <td>${student.stream}</td>
-            <td>${student.form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}</td>
-            <td><button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button></td>
-          </tr>`;
-        });
-      } catch (error) {
-        console.error("Load students error:", error);
-        studentsBody.innerHTML = `<tr><td colspan="5">Failed to load students: ${error.message}</td></tr>`;
-        showPopup(`Error: ${error.message}`, true);
-      }
-    }
-
-    function searchStudents() {
-      const searchTerm = document.getElementById("searchStudent").value.toLowerCase();
-      const form = document.getElementById("yearSelect").value;
-      const studentsBody = document.getElementById("studentsBody");
-      studentsBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
-
-      db.ref("users/students").once("value", (snapshot) => {
-        const students = snapshot.val() || {};
-        let studentsList = [];
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          if (student.form === form && (student.profile.name.toLowerCase().includes(searchTerm) || regNo.toLowerCase().includes(searchTerm))) {
-            studentsList.push({
-              regNo,
-              name: student.profile.name,
-              stream: student.stream,
-              form: student.form
-            });
-          }
-        });
-
-        studentsBody.innerHTML = "";
-        if (studentsList.length === 0) {
-          studentsBody.innerHTML = `<tr><td colspan="5">No students found matching '${searchTerm}' in ${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}.</td></tr>`;
-          return;
-        }
-
-        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
-        studentsList.forEach(student => {
-          studentsBody.innerHTML += `<tr>
-            <td>${student.regNo}</td>
-            <td>${student.name}</td>
-            <td>${student.stream}</td>
-            <td>${student.form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}</td>
-            <td><button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button></td>
-          </tr>`;
-        });
-      }).catch(error => {
-        studentsBody.innerHTML = `<tr><td colspan="5">Failed to search students: ${error.message}</td></tr>`;
-        showPopup(`Error: ${error.message}`, true);
-      });
-    }
-
-    function updateSubjectOptions() {
-      const form = document.getElementById("marksYearSelect").value;
-      const subjectSelect = document.getElementById("marksSubjectSelect");
-      const previousSubject = subjectSelect.value; // Store the previously selected subject
-      subjectSelect.innerHTML = '<option value="">Select a Subject</option>';
-      
-      if (form && subjectsByGrade[form]) {
-        subjectsByGrade[form].forEach(subject => {
-          const option = document.createElement("option");
-          option.value = subject;
-          option.textContent = subject;
-          if (subject === previousSubject) {
-            option.selected = true; // Retain the previously selected subject
-          }
-          subjectSelect.appendChild(option);
-        });
-      }
-    }
-
-    async function loadMarksForm() {
-      const form = document.getElementById("marksYearSelect").value;
-      const subject = document.getElementById("marksSubjectSelect").value;
-      const term = document.getElementById("termSelect").value;
-      const marksTable = document.getElementById("marksTable");
-
-      marksTable.innerHTML = "<p>Loading...</p>";
-
-      if (!form || !subject || !term) {
-        marksTable.innerHTML = "<p>Please select a class, subject, and term.</p>";
-        return;
-      }
-
-      try {
-        const snapshot = await db.ref("users/students").once("value");
-        const students = snapshot.val() || {};
-        let studentsList = [];
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          if (student.form === form) {
-            studentsList.push({
-              regNo,
-              name: student.profile.name,
-              stream: student.stream,
-              academics: student.academics || {}
-            });
-          }
-        });
-
-        marksTable.innerHTML = "";
-        if (studentsList.length === 0) {
-          marksTable.innerHTML = `<p>No students found in ${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}.</p>`;
-          return;
-        }
-
-        let tableHTML = `<table class="marks-table">
-          <thead>
-            <tr>
-              <th>Reg No</th>
-              <th>Name</th>
-              <th>Stream</th>
-              ${term !== "term3" ? '<th>CAT</th>' : ''}
-              <th>Exam</th>
-              <th>Grade</th>
-            </tr>
-          </thead>
-          <tbody>`;
-
-        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
-        for (const student of studentsList) {
-          const normalizedRegNo = student.regNo.replace(/\//g, "_");
-          const marksData = student.academics[term] || {};
-          const cat = marksData.cat?.[subject] || "";
-          const exam = marksData.exam?.[subject] || "";
-          const grade = marksData.grades?.[subject] || "";
-
-          tableHTML += `<tr>
-            <td>${student.regNo}</td>
-            <td>${student.name}</td>
-            <td>${student.stream}</td>
-            ${term !== "term3" ? `<td><input type="number" id="cat_${normalizedRegNo}" value="${cat}" min="0" max="100" placeholder="CAT"></td>` : ''}
-            <td><input type="number" id="exam_${normalizedRegNo}" value="${exam}" min="0" max="100" placeholder="Exam"></td>
-            <td><input type="text" id="grade_${normalizedRegNo}" value="${grade}" placeholder="Grade" pattern="[A-F][+-]?" title="Enter grade like A, A+, B-, etc."></td>
-          </tr>`;
-        }
-
-        tableHTML += "</tbody></table>";
-        marksTable.innerHTML = tableHTML;
-      } catch (error) {
-        console.error("Load marks form error:", error);
-        marksTable.innerHTML = `<div class="error-message">Failed to load marks form: ${error.message}</div>`;
-      }
-    }
-
-    async function saveMarks() {
-      const form = document.getElementById("marksYearSelect").value;
-      const subject = document.getElementById("marksSubjectSelect").value;
-      const term = document.getElementById("termSelect").value;
-
-      if (!form || !subject || !term) {
-        showPopup("Please select a class, subject, and term.", true);
-        return;
-      }
-
-      try {
-        const snapshot = await db.ref("users/students").once("value");
-        const students = snapshot.val() || {};
-        let studentsList = [];
-        let updates = {};
-        let hasValidInput = false;
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          if (student.form === form) {
-            studentsList.push({ regNo, name: student.profile.name, academics: student.academics || {} });
-          }
-        });
-
-        for (const student of studentsList) {
-          const normalizedRegNo = student.regNo.replace(/\//g, "_");
-          const catInput = term !== "term3" ? document.getElementById(`cat_${normalizedRegNo}`)?.value : null;
-          const examInput = document.getElementById(`exam_${normalizedRegNo}`)?.value;
-          const gradeInput = document.getElementById(`grade_${normalizedRegNo}`)?.value.trim().toUpperCase();
-
-          const existingMarks = student.academics[term] || { cat: {}, exam: {}, grades: {} };
-
-          let studentMarks = {
-            cat: { ...existingMarks.cat },
-            exam: { ...existingMarks.exam },
-            grades: { ...existingMarks.grades }
-          };
-
-          if (catInput && term !== "term3") {
-            const catValue = parseInt(catInput);
-            if (catValue >= 0 && catValue <= 100) {
-              studentMarks.cat[subject] = catValue;
-              hasValidInput = true;
-            } else if (catInput !== "") {
-              showPopup(`Invalid CAT mark for ${student.name} in ${subject}. Must be 0-100.`, true);
-              return;
-            } else {
-              delete studentMarks.cat[subject];
-            }
-          }
-
-          if (examInput) {
-            const examValue = parseInt(examInput);
-            if (examValue >= 0 && examValue <= 100) {
-              studentMarks.exam[subject] = examValue;
-              hasValidInput = true;
-            } else if (examInput !== "") {
-              showPopup(`Invalid Exam mark for ${student.name} in ${subject}. Must be 0-100.`, true);
-              return;
-            } else {
-              delete studentMarks.exam[subject];
-            }
-          }
-
-          if (gradeInput) {
-            const gradeMatch = gradeInput.match(/^([A-F])([+-])?$/);
-            if (gradeMatch) {
-              studentMarks.grades[subject] = gradeMatch[1] + (gradeMatch[2] || "");
-              hasValidInput = true;
-            } else if (gradeInput !== "") {
-              showPopup(`Invalid grade format for ${student.name} in ${subject}. Use A-F with optional + or -.`, true);
-              return;
-            } else {
-              delete studentMarks.grades[subject];
-            }
-          }
-
-          if (Object.keys(studentMarks.cat).length === 0) delete studentMarks.cat;
-          if (Object.keys(studentMarks.exam).length === 0) delete studentMarks.exam;
-          if (Object.keys(studentMarks.grades).length === 0) delete studentMarks.grades;
-
-          if (Object.keys(studentMarks).length > 0) {
-            updates[`users/students/${normalizedRegNo}/academics/${term}`] = studentMarks;
-          }
-        }
-
-        if (!hasValidInput) {
-          showPopup("Please enter at least one valid mark or grade for any student.", true);
-          return;
-        }
-
-        loadingScreen.classList.remove("hidden");
-        document.getElementById("saveMarksBtn").disabled = true;
-
-        await db.ref().update(updates);
-        showPopup("Marks saved successfully!", false);
-        loadMarksForm();
-      } catch (error) {
-        console.error("Save marks error:", error);
-        showPopup(`Failed to save marks: ${error.message}`, true);
-      } finally {
-        loadingScreen.classList.add("hidden");
-        document.getElementById("saveMarksBtn").disabled = false;
-      }
-    }
-
-    function loadAnnouncementForm() {
-      const typeSelect = document.getElementById("announcementType");
-      const studentSelect = document.getElementById("announcementStudent");
-      studentSelect.style.display = typeSelect.value === "individual" ? "block" : "none";
-      if (typeSelect.value !== "individual") return;
-
-      studentSelect.innerHTML = "";
-      db.ref("users/students").once("value", (snapshot) => {
-        const students = snapshot.val() || {};
-        let studentsList = [];
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          studentsList.push({
-            regNo,
-            name: student.profile.name
-          });
-        });
-
-        if (studentsList.length === 0) {
-          studentSelect.innerHTML = `<option value="">No students found.</option>`;
-          return;
-        }
-
-        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
-        studentSelect.innerHTML = `<option value="">Select a student</option>`;
-        studentsList.forEach(student => {
-          studentSelect.innerHTML += `<option value="${student.regNo}">${student.name} (${student.regNo})</option>`;
-        });
-      }).catch(error => {
-        studentSelect.innerHTML = `<option>Failed to load students: ${error.message}</option>`;
-      });
-    }
-
-    function addAnnouncement() {
-      const type = document.getElementById("announcementType").value;
-      const title = document.getElementById("announcementTitle").value.trim();
-      const message = document.getElementById("announcementMessage").value.trim();
-      const teacherName = document.getElementById("teacherName").textContent;
-
-      if (!title || !message) {
-        showMessage("announcementsMessage", "Please enter both title and message.");
-        return;
-      }
-
-      const announcement = {
-        title,
-        message,
-        date: new Date().toISOString().split("T")[0],
-        teacher: teacherName
-      };
-
-      if (type === "general") {
-        db.ref("announcements/general").push(announcement)
-          .then(() => {
-            showMessage("announcementsMessage", "Announcement added successfully!", false);
-            document.getElementById("announcementTitle").value = "";
-            document.getElementById("announcementMessage").value = "";
-          })
-          .catch(error => {
-            showMessage("announcementsMessage", "Failed to add announcement: " + error.message);
-          });
-      } else {
-        const regNo = document.getElementById("announcementStudent").value;
-        if (!regNo) {
-          showMessage("announcementsMessage", "Please select a student for individual announcement.");
-          return;
-        }
-        const normalizedRegNo = regNo.replace(/\//g, "_");
-        db.ref(`announcements/individual/${normalizedRegNo}`).push(announcement)
-          .then(() => {
-            showMessage("announcementsMessage", "Announcement added successfully!", false);
-            document.getElementById("announcementTitle").value = "";
-            document.getElementById("announcementMessage").value = "";
-            document.getElementById("announcementStudent").value = "";
-          })
-          .catch(error => {
-            showMessage("announcementsMessage", "Failed to add announcement: " + error.message);
-          });
-      }
-    }
-
-    async function loadResults() {
-      const form = document.getElementById("resultsYearSelect").value;
-      const resultsBody = document.getElementById("resultsBody");
-      const resultsTableHead = document.getElementById("resultsTableHead");
-      resultsBody.innerHTML = "<tr><td colspan='28'>Loading...</td></tr>";
-      document.getElementById("resultsMessage").textContent = "";
-
-      if (!form) {
-        resultsBody.innerHTML = "<tr><td colspan='28'>Please select a class.</td></tr>";
-        return;
-      }
-
-      try {
-        const snapshot = await db.ref("users/students").once("value");
-        const students = snapshot.val() || {};
-        let studentsList = [];
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          if (student.form === form) {
-            studentsList.push({
-              regNo,
-              name: student.profile.name,
-              stream: student.stream,
-              academics: student.academics || {}
-            });
-          }
-        });
-
-        resultsBody.innerHTML = "";
-        if (studentsList.length === 0) {
-          resultsBody.innerHTML = `<tr><td colspan="28">No students found in ${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}.</td></tr>`;
-          return;
-        }
-
-        const subjects = subjectsByGrade[form] || [];
-        resultsTableHead.innerHTML = `<tr>
-          <th>Reg No</th>
-          <th>Name</th>
-          <th>Stream</th>
-          ${subjects.map(subject => `<th>${subject}</th>`).join("")}
-        </tr>`;
-
-        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
-        studentsList.forEach(student => {
-          let row = `<tr>
-            <td>${student.regNo}</td>
-            <td>${student.name}</td>
-            <td>${student.stream}</td>`;
-          subjects.forEach(subject => {
-            let mark = "-";
-            ["term1", "term2", "term3"].forEach(term => {
-              const examMark = student.academics[term]?.exam?.[subject];
-              if (examMark !== undefined && examMark !== "-") mark = examMark;
-            });
-            row += `<td>${mark}</td>`;
-          });
-          row += `</tr>`;
-          resultsBody.innerHTML += row;
-        });
-      } catch (error) {
-        console.error("Load results error:", error);
-        resultsBody.innerHTML = `<tr><td colspan="28">Failed to load results: ${error.message}</td></tr>`;
-        document.getElementById("resultsMessage").textContent = `Error: ${error.message}`;
-      }
-    }
-
-    function downloadStudentPDF(regNo) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const normalizedRegNo = regNo.replace(/\//g, "_");
-      const teacherName = document.getElementById("teacherName").textContent;
-      const date = new Date().toLocaleDateString();
-      const logoUrl = "https://img.icons8.com/color/80/000000/teacher.png";
-
-      loadingScreen.classList.remove("hidden");
-      db.ref(`users/students/${normalizedRegNo}`).once("value", (snapshot) => {
-        const student = snapshot.val() || {};
-        const transactions = student.fees?.transactions || [];
-        const totalPaid = Array.isArray(transactions) ? transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0) : 0;
-        const balance = (student.fees?.totalExpected || 0) - totalPaid;
-
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = logoUrl;
-        img.onload = () => {
-          doc.addImage(img, "PNG", 10, 10, 40, 40);
-          renderPDFContent(doc, teacherName, date, regNo, student, totalPaid, balance);
-          doc.save(`${regNo}_profile.pdf`);
-          loadingScreen.classList.add("hidden");
-        };
-        img.onerror = () => {
-          console.error("Failed to load logo");
-          doc.text("Logo not available", 10, 15);
-          renderPDFContent(doc, teacherName, date, regNo, student, totalPaid, balance);
-          doc.save(`${regNo}_profile.pdf`);
-          loadingScreen.classList.add("hidden");
-        };
-      }).catch(error => {
-        console.error("Download student PDF error:", error);
-        showPopup(`Failed to generate PDF: ${error.message}`, true);
-        loadingScreen.classList.add("hidden");
-      });
-    }
-
-    function renderPDFContent(doc, teacherName, date, regNo, student, totalPaid, balance) {
-      doc.setFontSize(14);
-      doc.setTextColor(107, 72, 255);
-      doc.text("MACS SCHOOLS EA", 60, 20);
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text("P.O. Box 102-40502, Nyamira Keroka, Kenya", 60, 25);
-      doc.text(`Prepared by: ${teacherName}`, 10, 40);
-      doc.text(`Date: ${date}`, 160, 40);
-
-      doc.setFontSize(12);
-      doc.text("Student Profile", 10, 60);
-      const profileData = [
-        ["Reg No", regNo],
-        ["Name", student.profile?.name || "N/A"],
-        ["Gender", student.profile?.gender || "N/A"],
-        ["Religion", student.profile?.religion || "N/A"],
-        ["Class", student.form?.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1") || "N/A"],
-        ["Stream", student.stream || "N/A"],
-        ["Phone", student.profile?.phone || "N/A"],
-        ["Email", student.profile?.email || "N/A"],
-        ["Emergency Contact", student.profile?.emergencyContact || "N/A"],
-        ["Parent Name", student.profile?.parentName || "N/A"],
-        ["Parent Phone", student.profile?.parentPhone || "N/A"],
-        ["Parent Email", student.profile?.parentEmail || "N/A"],
-        ["Parent Occupation", student.profile?.parentOccupation || "N/A"],
-        ["Parent Marital Status", student.profile?.parentMaritalStatus || "N/A"],
-        ["Guardian Relationship", student.profile?.guardianRelationship || "N/A"],
-        ["County", student.profile?.county || "N/A"],
-        ["Address", student.profile?.address || "N/A"],
-        ["Town", student.profile?.town || "N/A"]
-      ];
-      doc.autoTable({
-        startY: 70,
-        body: profileData,
-        theme: 'grid',
-        styles: { cellPadding: 3, fontSize: 11, lineColor: [0, 0, 0], lineWidth: 0.1 },
-        headStyles: { fillColor: [107, 72, 255], textColor: [255, 255, 255], fontStyle: 'bold' },
-        bodyStyles: { alternateRowStyles: { fillColor: [245, 245, 245] } },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 }, 1: { cellWidth: 130 } }
-      });
-
-      const financialY = doc.autoTable.previous.finalY + 10;
-      doc.text("Financial Details", 10, financialY);
-      const financialData = [
-        ["Sponsor", student.fees?.sponsor || "N/A"],
-        ["Total Fees (KES)", student.fees?.totalExpected || "N/A"],
-        ["Fees Paid (KES)", totalPaid || "0"],
-        ["Balance (KES)", balance || "N/A"],
-        ["Admission Date", new Date().toLocaleDateString() || "N/A"],
-        ["Status", "Active" || "N/A"],
-        ["Remarks", "Good standing" || "N/A"]
-      ];
-      doc.autoTable({
-        startY: financialY + 5,
-        body: financialData,
-        theme: 'grid',
-        styles: { cellPadding: 3, fontSize: 11, lineColor: [0, 0, 0], lineWidth: 0.1 },
-        headStyles: { fillColor: [107, 72, 255], textColor: [255, 255, 255], fontStyle: 'bold' },
-        bodyStyles: { alternateRowStyles: { fillColor: [245, 245, 245] } },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 }, 1: { cellWidth: 130 } }
-      });
-
-      const signatureY = doc.autoTable.previous.finalY + 10;
-      doc.setLineWidth(0.5);
-      doc.line(10, signatureY, 70, signatureY);
-      doc.text("Director of Studies", 10, signatureY + 5);
-      doc.text("Forged Signature (for demo purposes)", 10, signatureY + 10);
-    }
-
-    function downloadResultsPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape' });
-      const form = document.getElementById("resultsYearSelect").value;
-      const teacherName = document.getElementById("teacherName").textContent;
-      const date = new Date().toLocaleDateString();
-      const logoUrl = "https://img.icons8.com/color/80/000000/teacher.png";
-
-      if (!form) {
-        showPopup("Please select a class.", true);
-        return;
-      }
-
-      loadingScreen.classList.remove("hidden");
-      db.ref("users/students").once("value", async (snapshot) => {
-        const students = snapshot.val() || {};
-        let studentsList = [];
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          if (student.form === form) {
-            studentsList.push({
-              regNo,
-              name: student.profile.name,
-              stream: student.stream,
-              academics: student.academics || {}
-            });
-          }
-        });
-
-        if (studentsList.length === 0) {
-          showPopup(`No students found in ${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}`, true);
-          loadingScreen.classList.add("hidden");
-          return;
-        }
-
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = logoUrl;
-        img.onload = () => {
-          doc.addImage(img, "PNG", 10, 10, 40, 40);
-          renderResultsPDFContent(doc, teacherName, date, form, studentsList);
-          doc.save(`results_${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "PrePrimary" : "Grade").replace(/(\d)$/, "$1")}_${date}.pdf`);
-          loadingScreen.classList.add("hidden");
-        };
-        img.onerror = () => {
-          console.error("Failed to load logo");
-          doc.text("Logo not available", 10, 15);
-          renderResultsPDFContent(doc, teacherName, date, form, studentsList);
-          doc.save(`results_${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "PrePrimary" : "Grade").replace(/(\d)$/, "$1")}_${date}.pdf`);
-          loadingScreen.classList.add("hidden");
-        };
-      }).catch(error => {
-        console.error("Download results PDF error:", error);
-        showPopup(`Failed to generate PDF: ${error.message}`, true);
-        loadingScreen.classList.add("hidden");
-      });
-    }
-
-    function renderResultsPDFContent(doc, teacherName, date, form, studentsList) {
-      doc.setFontSize(14);
-      doc.setTextColor(107, 72, 255);
-      doc.text("MACS SCHOOLS EA", 150, 20, { align: 'center' });
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text("P.O. Box 102-40502, Nyamira Keroka, Kenya", 150, 25, { align: 'center' });
-      doc.text(`Prepared by: ${teacherName}`, 10, 40);
-      doc.text(`Date: ${date}`, 280, 40);
-
-      const subjects = subjectsByGrade[form] || [];
-      const tableData = studentsList.map(student => {
-        const row = [student.regNo, student.name, student.stream];
-        subjects.forEach(subject => {
-          let mark = "-";
-          ["term1", "term2", "term3"].forEach(term => {
-            const examMark = student.academics[term]?.exam?.[subject];
-            if (examMark !== undefined && examMark !== "-") mark = examMark;
-          });
-          row.push(mark);
-        });
-        return row;
-      });
-
-      doc.autoTable({
-        head: [["Reg No", "Name", "Stream", ...subjects]],
-        body: tableData,
-        startY: 50,
-        theme: 'grid',
-        styles: { cellPadding: 2, fontSize: 8, lineColor: [0, 0, 0], lineWidth: 0.1 },
-        headStyles: { fillColor: [107, 72, 255], textColor: [255, 255, 255], fontStyle: 'bold' },
-        bodyStyles: { alternateRowStyles: { fillColor: [245, 245, 245] } },
-        columnStyles: { 
-          0: { cellWidth: 20 }, 
-          1: { cellWidth: 40 }, 
-          2: { cellWidth: 20 }, 
-          ...subjects.reduce((acc, sub, i) => ({ ...acc, [i + 3]: { cellWidth: 20 } }), {}) 
-        },
-        margin: { top: 50 }
-      });
-
-      const signatureY = doc.autoTable.previous.finalY + 10;
-      doc.setLineWidth(0.5);
-      doc.line(10, signatureY, 70, signatureY);
-      doc.text("Director of Studies", 10, signatureY + 5);
-      doc.text("Forged Signature (for demo purposes)", 10, signatureY + 10);
-    }
-
-    function downloadResultsExcel() {
-      const form = document.getElementById("resultsYearSelect").value;
-      const wb = XLSX.utils.book_new();
-      const wsData = [["MACS SCHOOLS EA"], ["P.O. Box 102-40502, Nyamira Keroka, Kenya"], [], ["Results for " + form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")], []];
-
-      if (!form) {
-        showPopup("Please select a class.", true);
-        return;
-      }
-
-      loadingScreen.classList.remove("hidden");
-      db.ref("users/students").once("value", (snapshot) => {
-        const students = snapshot.val() || {};
-        let studentsList = [];
-
-        Object.keys(students).forEach(regNo => {
-          const student = students[regNo];
-          if (student.form === form) {
-            studentsList.push({
-              regNo,
-              name: student.profile.name,
-              stream: student.stream,
-              academics: student.academics || {}
-            });
-          }
-        });
-
-        if (studentsList.length === 0) {
-          showPopup(`No students found in ${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}`, true);
-          loadingScreen.classList.add("hidden");
-          return;
-        }
-
-        const subjects = subjectsByGrade[form] || [];
-        const header = ["Reg No", "Name", "Stream", ...subjects];
-        wsData.push(header);
-        studentsList.forEach(student => {
-          const row = [student.regNo, student.name, student.stream];
-          subjects.forEach(subject => {
-            let mark = "-";
-            ["term1", "term2", "term3"].forEach(term => {
-              const examMark = student.academics[term]?.exam?.[subject];
-              if (examMark !== undefined && examMark !== "-") mark = examMark;
-            });
-            row.push(mark);
-          });
-          wsData.push(row);
-        });
-
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        XLSX.utils.book_append_sheet(wb, ws, "Results");
-        XLSX.writeFile(wb, `results_${form.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "PrePrimary" : "Grade").replace(/(\d)$/, "$1")}_${new Date().toLocaleDateString()}.xlsx`);
-        loadingScreen.classList.add("hidden");
-      }).catch(error => {
-        console.error("Download results Excel error:", error);
-        showPopup(`Failed to generate Excel: ${error.message}`, true);
-        loadingScreen.classList.add("hidden");
-      });
-    }
 
     function toggleDropdown(select) {
       const value = select.value;
@@ -1539,27 +318,6 @@
         if (content.id === `${value}Content`) content.classList.add("show");
       });
     }
-
-    function logout() {
-      auth.signOut().then(() => {
-        localStorage.clear();
-        window.location.href = "index.html";
-      }).catch(error => {
-        console.error("Logout failed:", error);
-        showPopup(`Failed to log out: ${error.message}`, true);
-      });
-    }
-
-    // Initialize the page
-    loadingScreen.classList.add("hidden");
-    loadStudents();
-    updateSubjectOptions(); // Initialize subject options on page load
-    loadMarksForm();
-    loadResults();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>

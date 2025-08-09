@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Portal - Add Student - MACS SCHOOLS EA</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #e6e9f0, #b8c6db);
+      color: #2d3748;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(to bottom, #2b6cb0, #ed8936);
+      color: #fff;
+      padding: 20px;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+    .sidebar .profile {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .sidebar .profile img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid #f6e05e;
+      margin-bottom: 10px;
+    }
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .sidebar a, .sidebar button {
+      display: flex;
+      align-items: center;
+      color: #fff;
+      padding: 15px;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.15);
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .sidebar a i, .sidebar button i {
+      margin-right: 10px;
+    }
+    .sidebar a:hover, .sidebar button:hover, .sidebar a.active {
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateX(5px);
+    }
+    .main-content {
+      flex: 1;
+      padding: 30px;
+    }
+    .section {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    .section h1 {
+      font-size: 28px;
+      color: #2b6cb0;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .section h1 i {
+      margin-right: 10px;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1001;
+      display: none;
+    }
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+    }
+    .error-message {
+      color: #e53e3e;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #fed7d7;
+      border-radius: 5px;
+    }
+    .success-message {
+      color: #38a169;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #c6f6d5;
+      border-radius: 5px;
+    }
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .loading-screen.hidden {
+      display: none;
+    }
+    .form-step {
+      display: none;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .form-step.active {
+      display: block;
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .form-group label {
+      font-weight: 600;
+      color: #2d3748;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 12px 12px 12px 40px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .form-group textarea {
+      height: 80px;
+      resize: vertical;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: #2b6cb0;
+      box-shadow: 0 0 5px rgba(43, 108, 176, 0.3);
+      outline: none;
+    }
+    .form-group i {
+      position: absolute;
+      left: 12px;
+      top: 38px;
+      color: #2b6cb0;
+      font-size: 18px;
+    }
+    button {
+      padding: 12px 20px;
+      background: #38a169;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #2f855a;
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    button i {
+      margin-right: 8px;
+    }
+    h3 {
+      color: #2b6cb0;
+      margin-top: 20px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 5px;
+    }
+    .progress-container {
+      margin-bottom: 20px;
+      background: #edf2f7;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 20px;
+      position: relative;
+    }
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(to right, #2b6cb0, #ed8936);
+      transition: width 0.3s ease;
+    }
+    .progress-text {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #2d3748;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 20px;
+    }
+    .step-navigation {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+  </div>
+  <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()"></div>
+  <div class="popup" id="popupMessage"></div>
+  <div class="container">
+    <div class="sidebar">
+      <div class="profile">
+        <img src="https://img.icons8.com/color/80/000000/teacher.png" alt="Teacher Icon">
+        <p id="teacherName">Loading...</p>
+      </div>
+      <h2>Teacher Portal</h2>
+      <a href="teacher.html"><i class="fas fa-info-circle"></i> Guide</a>
+      <a href="students.html"><i class="fas fa-users"></i> Students</a>
+      <a href="add-student.html" class="active"><i class="fas fa-user-plus"></i> Add Student</a>
+      <a href="marks.html"><i class="fas fa-chart-line"></i> Upload Marks</a>
+      <a href="announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a>
+      <a href="results.html"><i class="fas fa-file-alt"></i> Results</a>
+      <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+    <div class="main-content">
+      <div id="addStudent" class="section">
+        <h1><i class="fas fa-user-plus"></i> Add Student</h1>
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar"></div>
+          <div class="progress-text" id="progressText">0% Complete</div>
+        </div>
+        <div id="addStudentMessage" class="error-message"></div>
+        <div class="form-step active" id="step1">
+          <h3>Personal Information</h3>
+          <div class="form-group">
+            <label for="regNo">Registration Number *</label>
+            <i class="fas fa-id-card"></i>
+            <input type="text" id="regNo" placeholder="e.g., AID/00119/025" required>
+          </div>
+          <div class="form-group">
+            <label for="studentName">Full Name *</label>
+            <i class="fas fa-user-graduate"></i>
+            <input type="text" id="studentName" placeholder="Enter full name" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password *</label>
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" placeholder="Enter password" required>
+          </div>
+          <div class="form-group">
+            <label for="gender">Gender *</label>
+            <i class="fas fa-venus-mars"></i>
+            <select id="gender" required>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="religion">Religion *</label>
+            <i class="fas fa-pray"></i>
+            <select id="religion" required>
+              <option value="Christian">Christian</option>
+              <option value="Muslim">Muslim</option>
+              <option value="Hindu">Hindu</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form">Class *</label>
+            <i class="fas fa-school"></i>
+            <select id="form" required>
+              <option value="playgroup">Play Group</option>
+              <option value="preprimary1">Pre-Primary 1</option>
+              <option value="preprimary2">Pre-Primary 2</option>
+              <option value="grade1">Grade 1</option>
+              <option value="grade2">Grade 2</option>
+              <option value="grade3">Grade 3</option>
+              <option value="grade4">Grade 4</option>
+              <option value="grade5">Grade 5</option>
+              <option value="grade6">Grade 6</option>
+              <option value="grade7">Grade 7</option>
+              <option value="grade8">Grade 8</option>
+              <option value="grade9">Grade 9</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="stream">Stream *</label>
+            <i class="fas fa-stream"></i>
+            <input type="text" id="stream" placeholder="Enter stream (e.g., Blue)" required>
+          </div>
+          <div class="step-navigation">
+            <button onclick="nextStep(1)"><i class="fas fa-arrow-right"></i> Next</button>
+          </div>
+        </div>
+        <div class="form-step" id="step2">
+          <h3>Contact Information</h3>
+          <div class="form-group">
+            <label for="phone">Phone Number *</label>
+            <i class="fas fa-phone"></i>
+            <input type="tel" id="phone" placeholder="Enter phone number" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="email" placeholder="Enter email" required>
+          </div>
+          <div class="form-group">
+            <label for="emergencyContact">Emergency Contact *</label>
+            <i class="fas fa-phone-alt"></i>
+            <input type="tel" id="emergencyContact" placeholder="Enter emergency contact" required>
+          </div>
+          <div class="step-navigation">
+            <button onclick="prevStep(2)"><i class="fas fa-arrow-left"></i> Previous</button>
+            <button onclick="nextStep(2)"><i class="fas fa-arrow-right"></i> Next</button>
+          </div>
+        </div>
+        <div class="form-step" id="step3">
+          <h3>Parental Information</h3>
+          <div class="form-group">
+            <label for="parentName">Parent Name *</label>
+            <i class="fas fa-user-graduate"></i>
+            <input type="text" id="parentName" placeholder="Enter parent name" required>
+          </div>
+          <div class="form-group">
+            <label for="parentPhone">Parent Phone *</label>
+            <i class="fas fa-phone"></i>
+            <input type="tel" id="parentPhone" placeholder="Enter parent phone" required>
+          </div>
+          <div class="form-group">
+            <label for="parentEmail">Parent Email *</label>
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="parentEmail" placeholder="Enter parent email" required>
+          </div>
+          <div class="form-group">
+            <label for="parentOccupation">Parent Occupation *</label>
+            <i class="fas fa-briefcase"></i>
+            <input type="text" id="parentOccupation" placeholder="Enter parent occupation" required>
+          </div>
+          <div class="form-group">
+            <label for="parentMaritalStatus">Parent Marital Status *</label>
+            <i class="fas fa-users"></i>
+            <select id="parentMaritalStatus" required>
+              <option value="Married">Married</option>
+              <option value="Single">Single</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Widowed">Widowed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="guardianRelationship">Guardian Relationship *</label>
+            <i class="fas fa-user-friends"></i>
+            <input type="text" id="guardianRelationship" placeholder="Enter relationship" required>
+          </div>
+          <div class="step-navigation">
+            <button onclick="prevStep(3)"><i class="fas fa-arrow-left"></i> Previous</button>
+            <button onclick="nextStep(3)"><i class="fas fa-arrow-right"></i> Next</button>
+          </div>
+        </div>
+        <div class="form-step" id="step4">
+          <h3>Residence Information</h3>
+          <div class="form-group">
+            <label for="county">County *</label>
+            <i class="fas fa-map-marker-alt"></i>
+            <input type="text" id="county" placeholder="Enter county" required>
+          </div>
+          <div class="form-group">
+            <label for="address">Address *</label>
+            <i class="fas fa-home"></i>
+            <textarea id="address" placeholder="Enter address" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="town">Town *</label>
+            <i class="fas fa-city"></i>
+            <input type="text" id="town" placeholder="Enter town" required>
+          </div>
+          <div class="step-navigation">
+            <button onclick="prevStep(4)"><i class="fas fa-arrow-left"></i> Previous</button>
+            <button onclick="nextStep(4)"><i class="fas fa-arrow-right"></i> Next</button>
+          </div>
+        </div>
+        <div class="form-step" id="step5">
+          <h3>Financial Information</h3>
+          <div class="form-group">
+            <label for="sponsor">Sponsor *</label>
+            <i class="fas fa-user-tie"></i>
+            <input type="text" id="sponsor" placeholder="Enter sponsor" required>
+          </div>
+          <div class="form-group">
+            <label for="totalExpected">Total Fees Expected (KES) *</label>
+            <i class="fas fa-money-bill"></i>
+            <input type="number" id="totalExpected" placeholder="Enter total fees" required>
+          </div>
+          <div class="step-navigation">
+            <button onclick="prevStep(5)"><i class="fas fa-arrow-left"></i> Previous</button>
+            <button onclick="addStudent()" id="addStudentBtn" disabled><i class="fas fa-user-plus"></i> Add Student</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
+      authDomain: "lifeflow-yhtl6.firebaseapp.com",
+      projectId: "lifeflow-yhtl6",
+      storageBucket: "lifeflow-yhtl6.firebasestorage.app",
+      messagingSenderId: "129785956666",
+      appId: "1:129785956666:web:541a08bee37c739556a803",
+      databaseURL: "https://lifeflow-yhtl6-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    auth.onAuthStateChanged(user => {
+      if (!user || localStorage.getItem("userType") !== "teacher") {
+        localStorage.clear();
+        window.location.href = "index.html";
+      } else {
+        const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
+        document.getElementById("teacherName").textContent = teacherName;
+        document.getElementById("loadingScreen").classList.add("hidden");
+        showStep(1);
+      }
+    });
+
+    let currentStep = 1;
+    const requiredFields = [
+      'regNo', 'studentName', 'password', 'gender', 'religion', 'form', 'stream',
+      'phone', 'email', 'emergencyContact',
+      'parentName', 'parentPhone', 'parentEmail', 'parentOccupation', 'parentMaritalStatus', 'guardianRelationship',
+      'county', 'address', 'town',
+      'sponsor', 'totalExpected'
+    ];
+
+    function showStep(step) {
+      document.querySelectorAll(".form-step").forEach(stepEl => stepEl.classList.remove("active"));
+      document.getElementById(`step${step}`).classList.add("active");
+      currentStep = step;
+      updateProgress();
+    }
+
+    function validateStep(step) {
+      let fields;
+      switch (step) {
+        case 1:
+          fields = ['regNo', 'studentName', 'password', 'gender', 'religion', 'form', 'stream'];
+          break;
+        case 2:
+          fields = ['phone', 'email', 'emergencyContact'];
+          break;
+        case 3:
+          fields = ['parentName', 'parentPhone', 'parentEmail', 'parentOccupation', 'parentMaritalStatus', 'guardianRelationship'];
+          break;
+        case 4:
+          fields = ['county', 'address', 'town'];
+          break;
+        case 5:
+          fields = ['sponsor', 'totalExpected'];
+          break;
+        default:
+          return false;
+      }
+      for (const field of fields) {
+        const input = document.getElementById(field);
+        if (!input.value.trim()) {
+          showMessage("addStudentMessage", `Please fill in ${input.previousElementSibling.textContent.replace(' *', '')}.`, true);
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function nextStep(step) {
+      if (!validateStep(step)) return;
+      showStep(step + 1);
+    }
+
+    function prevStep(step) {
+      showStep(step - 1);
+    }
+
+    function updateProgress() {
+      let filledFields = 0;
+      requiredFields.forEach(field => {
+        const input = document.getElementById(field);
+        if (input.value.trim()) filledFields++;
+      });
+      const progress = Math.round((filledFields / requiredFields.length) * 100);
+      document.getElementById("progressBar").style.width = `${progress}%`;
+      document.getElementById("progressText").textContent = `${progress}% Complete`;
+      const addBtn = document.getElementById("addStudentBtn");
+      addBtn.disabled = progress !== 100;
+    }
+
+    function validateRegNo(regNo) {
+      const invalidChars = /[.#$\[\]]/;
+      return !invalidChars.test(regNo);
+    }
+
+    function addStudent() {
+      if (!validateStep(5)) return;
+      const regNo = document.getElementById("regNo").value.trim();
+      const normalizedRegNo = regNo.replace(/\//g, "_");
+      if (!validateRegNo(normalizedRegNo)) {
+        showMessage("addStudentMessage", "Invalid Reg No format. Avoid '.', '#', '$', '[', or ']'.", true);
+        return;
+      }
+      const studentData = {
+        profile: {
+          name: document.getElementById("studentName").value.trim(),
+          password: document.getElementById("password").value.trim(),
+          gender: document.getElementById("gender").value,
+          religion: document.getElementById("religion").value,
+          phone: document.getElementById("phone").value.trim(),
+          email: document.getElementById("email").value.trim(),
+          emergencyContact: document.getElementById("emergencyContact").value.trim(),
+          parentName: document.getElementById("parentName").value.trim(),
+          parentPhone: document.getElementById("parentPhone").value.trim(),
+          parentEmail: document.getElementById("parentEmail").value.trim(),
+          parentOccupation: document.getElementById("parentOccupation").value.trim(),
+          parentMaritalStatus: document.getElementById("parentMaritalStatus").value,
+          guardianRelationship: document.getElementById("guardianRelationship").value.trim(),
+          county: document.getElementById("county").value.trim(),
+          address: document.getElementById("address").value.trim(),
+          town: document.getElementById("town").value.trim(),
+          dateOfAdmission: new Date().toISOString()
+        },
+        form: document.getElementById("form").value,
+        stream: document.getElementById("stream").value.trim(),
+        fees: {
+          sponsor: document.getElementById("sponsor").value.trim(),
+          totalExpected: parseFloat(document.getElementById("totalExpected").value) || 0,
+          transactions: []
+        },
+        academics: {},
+        marks: {}
+      };
+
+      document.getElementById("loadingScreen").classList.remove("hidden");
+      db.ref(`users/students/${normalizedRegNo}`).once("value", snapshot => {
+        if (snapshot.exists()) {
+          showMessage("addStudentMessage", "Registration number already exists.", true);
+          document.getElementById("loadingScreen").classList.add("hidden");
+          return;
+        }
+        db.ref(`users/students/${normalizedRegNo}`).set(studentData)
+          .then(() => {
+            showMessage("addStudentMessage", "Student added successfully!", false);
+            document.getElementById("loadingScreen").classList.add("hidden");
+            document.querySelectorAll("input, select, textarea").forEach(input => input.value = "");
+            showStep(1);
+            updateProgress();
+          })
+          .catch(error => {
+            showMessage("addStudentMessage", `Failed to add student: ${error.message}`, true);
+            document.getElementById("loadingScreen").classList.add("hidden");
+          });
+      });
+    }
+
+    // Real-time progress update
+    document.querySelectorAll("input, select, textarea").forEach(input => {
+      input.addEventListener("input", updateProgress);
+    });
+  </script>
+</body>
+</html>

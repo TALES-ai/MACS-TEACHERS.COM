@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Portal - Announcements - MACS SCHOOLS EA</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.6/quill.snow.css">
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script src="https://unpkg.com/typo-js@1.2.4/typo.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      color: #333;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(to bottom, #6b48ff, #ff6f61);
+      color: #fff;
+      padding: 20px;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    .sidebar .profile {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .sidebar .profile img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid #ffd700;
+      margin-bottom: 10px;
+    }
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .sidebar a, .sidebar button {
+      display: flex;
+      align-items: center;
+      color: #fff;
+      padding: 15px;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.1);
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .sidebar a i, .sidebar button i {
+      margin-right: 10px;
+    }
+    .sidebar a:hover, .sidebar button:hover, .sidebar a.active {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateX(5px);
+    }
+    .main-content {
+      flex: 1;
+      padding: 30px;
+    }
+    .section {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    .section h1 {
+      font-size: 28px;
+      color: #6b48ff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .section h1 i {
+      margin-right: 10px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+      position: relative;
+    }
+    .form-group label {
+      font-weight: 600;
+      color: #333;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group select, .form-group input {
+      width: 100%;
+      max-width: 400px;
+      padding: 10px 10px 10px 35px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .form-group select:focus, .form-group input:focus {
+      border-color: #6b48ff;
+      box-shadow: 0 0 5px rgba(107, 72, 255, 0.3);
+      outline: none;
+    }
+    .form-group i {
+      position: absolute;
+      left: 10px;
+      top: 33px;
+      color: #6b48ff;
+      font-size: 16px;
+    }
+    .ql-container {
+      max-width: 400px;
+      min-height: 100px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .ql-toolbar {
+      border: 2px solid #ccc;
+      border-radius: 8px 8px 0 0;
+      background: #f9f9f9;
+    }
+    .ql-editor {
+      background: #fff;
+      padding: 10px;
+      border-radius: 0 0 8px 8px;
+    }
+    button {
+      padding: 10px 20px;
+      background: linear-gradient(to right, #ff6f61, #ff9f61);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      display: inline-flex;
+      align-items: center;
+    }
+    button i {
+      margin-right: 8px;
+    }
+    button:hover {
+      background: linear-gradient(to right, #ff9f61, #ff6f61);
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .error-message, .success-message {
+      max-width: 400px;
+      font-size: 14px;
+      padding: 8px;
+      border-radius: 5px;
+      margin: 10px 0;
+      opacity: 0;
+      animation: fadeInOut 3s forwards;
+    }
+    .error-message {
+      color: #ff4444;
+      background: #ffebee;
+    }
+    .success-message {
+      color: #00cc00;
+      background: #e8f5e9;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .loading-screen.hidden {
+      display: none;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1001;
+      display: none;
+    }
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+    }
+    .typo-suggestion {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1002;
+      padding: 5px;
+      display: none;
+      max-width: 200px;
+    }
+    .typo-suggestion div {
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .typo-suggestion div:hover {
+      background: #f9f9f9;
+    }
+    .ql-editor span.typo-error {
+      border-bottom: 2px dotted #ff4444;
+      cursor: pointer;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+      }
+      .main-content {
+        padding: 15px;
+      }
+      .form-group select, .form-group input, .ql-container {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+  </div>
+  <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()"></div>
+  <div class="popup" id="popupMessage"></div>
+  <div class="container">
+    <div class="sidebar">
+      <div class="profile">
+        <img src="https://img.icons8.com/color/80/000000/teacher.png" alt="Teacher Icon">
+        <p id="teacherName">Loading...</p>
+      </div>
+      <h2>Teacher Portal</h2>
+      <a href="teacher.html"><i class="fas fa-info-circle"></i> Guide</a>
+      <a href="students.html"><i class="fas fa-users"></i> Students</a>
+      <a href="add-student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+      <a href="marks.html"><i class="fas fa-chart-line"></i> Upload Marks</a>
+      <a href="announcements.html" class="active"><i class="fas fa-bullhorn"></i> Announcements</a>
+      <a href="results.html"><i class="fas fa-file-alt"></i> Results</a>
+      <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+    <div class="main-content">
+      <div id="announcements" class="section">
+        <h1><i class="fas fa-bullhorn"></i> Announcements</h1>
+        <div class="form-group">
+          <label for="announcementType">Announcement Type</label>
+          <i class="fas fa-bullhorn"></i>
+          <select id="announcementType" onchange="loadAnnouncementForm()">
+            <option value="general">General</option>
+            <option value="individual">Individual</option>
+          </select>
+        </div>
+        <div class="form-group" id="studentSelectGroup" style="display: none;">
+          <label for="announcementStudent">Select Student</label>
+          <i class="fas fa-user"></i>
+          <select id="announcementStudent"></select>
+        </div>
+        <div class="form-group">
+          <label for="announcementTitle">Title</label>
+          <i class="fas fa-heading"></i>
+          <input id="announcementTitle" type="text" placeholder="Enter announcement title">
+        </div>
+        <div class="form-group">
+          <label for="editor">Message</label>
+          <div id="editor"></div>
+        </div>
+        <button onclick="addAnnouncement()"><i class="fas fa-plus"></i> Add Announcement</button>
+        <div id="announcementsMessage"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
+      authDomain: "lifeflow-yhtl6.firebaseapp.com",
+      projectId: "lifeflow-yhtl6",
+      storageBucket: "lifeflow-yhtl6.firebasestorage.app",
+      messagingSenderId: "129785956666",
+      appId: "1:129785956666:web:541a08bee37c739556a803",
+      databaseURL: "https://lifeflow-yhtl6-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    auth.onAuthStateChanged(user => {
+      if (!user || localStorage.getItem("userType") !== "teacher") {
+        localStorage.clear();
+        window.location.href = "index.html";
+      } else {
+        const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
+        document.getElementById("teacherName").textContent = teacherName;
+        document.getElementById("loadingScreen").classList.add("hidden");
+        initializeEditor();
+        loadAnnouncementForm();
+      }
+    });
+
+    let quill;
+    let typo;
+
+    function initializeEditor() {
+      quill = new Quill('#editor', {
+        theme: 'snow',
+        modules: {
+          toolbar: [
+            ['bold', 'italic', 'underline'],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }]
+          ]
+        },
+        placeholder: 'Enter announcement message...'
+      });
+
+      try {
+        typo = new Typo('en_US', false, false, {
+          dictionaryPath: 'https://unpkg.com/typo-js@1.2.4/dictionaries/en_US/'
+        });
+        quill.on('text-change', () => {
+          checkSpelling();
+        });
+        document.getElementById('editor').addEventListener('click', handleSuggestionClick);
+      } catch (error) {
+        console.error('Failed to initialize Typo.js:', error);
+        showMessage('announcementsMessage', 'Spell-checking is unavailable due to dictionary loading issues.', true);
+      }
+    }
+
+    function checkSpelling() {
+      if (!typo) return;
+      const editor = quill.root;
+      const text = quill.getText();
+      const words = text.split(/\s+/);
+      let currentPos = 0;
+
+      editor.querySelectorAll('span.typo-error').forEach(span => {
+        const textNode = document.createTextNode(span.textContent);
+        span.parentNode.replaceChild(textNode, span);
+      });
+
+      document.querySelectorAll('.typo-suggestion').forEach(popup => popup.remove());
+
+      words.forEach(word => {
+        if (word.length > 2 && !typo.check(word)) {
+          const start = text.indexOf(word, currentPos);
+          if (start === -1) return;
+          const end = start + word.length;
+          quill.formatText(start, word.length, {
+            'link': false,
+            'color': false,
+            'background': false
+          });
+          quill.formatText(start, word.length, {
+            'span': { class: 'typo-error' }
+          });
+          currentPos = end + 1;
+        }
+      });
+    }
+
+    function handleSuggestionClick(event) {
+      if (!typo) return;
+      if (event.target.classList.contains('typo-error')) {
+        const word = event.target.textContent;
+        const suggestions = typo.suggest(word);
+        if (suggestions.length > 0) {
+          showSuggestions(event.target, word, suggestions);
+        }
+      }
+    }
+
+    function showSuggestions(element, word, suggestions) {
+      document.querySelectorAll('.typo-suggestion').forEach(popup => popup.remove());
+
+      const popup = document.createElement('div');
+      popup.className = 'typo-suggestion';
+      suggestions.slice(0, 5).forEach(suggestion => {
+        const suggestionDiv = document.createElement('div');
+        suggestionDiv.textContent = suggestion;
+        suggestionDiv.addEventListener('click', () => {
+          const start = quill.getText().indexOf(word);
+          if (start !== -1) {
+            quill.deleteText(start, word.length);
+            quill.insertText(start, suggestion);
+            checkSpelling();
+          }
+          popup.remove();
+        });
+        popup.appendChild(suggestionDiv);
+      });
+
+      const rect = element.getBoundingClientRect();
+      popup.style.top = `${rect.bottom + window.scrollY}px`;
+      popup.style.left = `${rect.left + window.scrollX}px`;
+      document.body.appendChild(popup);
+      popup.style.display = 'block';
+    }
+
+    function loadAnnouncementForm() {
+      const typeSelect = document.getElementById("announcementType");
+      const studentSelectGroup = document.getElementById("studentSelectGroup");
+      const studentSelect = document.getElementById("announcementStudent");
+      studentSelectGroup.style.display = typeSelect.value === "individual" ? "block" : "none";
+      if (typeSelect.value !== "individual") return;
+
+      studentSelect.innerHTML = "<option>Loading...</option>";
+      db.ref("users/students").once("value")
+        .then(snapshot => {
+          const students = snapshot.val() || {};
+          let studentsList = [];
+
+          Object.keys(students).forEach(regNo => {
+            studentsList.push({
+              regNo,
+              name: students[regNo].profile.name
+            });
+          });
+
+          studentSelect.innerHTML = '<option value="">Select a student</option>';
+          if (studentsList.length === 0) {
+            studentSelect.innerHTML = '<option value="">No students found.</option>';
+            return;
+          }
+
+          studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+          studentsList.forEach(student => {
+            studentSelect.innerHTML += `<option value="${student.regNo}">${student.name} (${student.regNo})</option>`;
+          });
+        })
+        .catch(error => {
+          studentSelect.innerHTML = `<option>Failed to load students: ${error.message}</option>`;
+          showMessage("announcementsMessage", `Failed to load students: ${error.message}`, true);
+        });
+    }
+
+    function addAnnouncement() {
+      const type = document.getElementById("announcementType").value;
+      const title = document.getElementById("announcementTitle").value.trim();
+      const message = quill.root.innerHTML.trim();
+      const teacherName = document.getElementById("teacherName").textContent;
+
+      if (!title || !message || message === '<p><br></p>') {
+        showMessage("announcementsMessage", "Please enter both a title and message.", true);
+        return;
+      }
+
+      const announcement = {
+        title,
+        message,
+        date: new Date().toISOString().split("T")[0],
+        teacher: teacherName
+      };
+
+      document.getElementById("loadingScreen").classList.remove("hidden");
+
+      if (type === "general") {
+        db.ref("announcements/general").push(announcement)
+          .then(() => {
+            showMessage("announcementsMessage", "Announcement added successfully!", false);
+            document.getElementById("announcementTitle").value = "";
+            quill.setText('');
+          })
+          .catch(error => {
+            showMessage("announcementsMessage", `Failed to add announcement: ${error.message}`, true);
+          })
+          .finally(() => {
+            document.getElementById("loadingScreen").classList.add("hidden");
+          });
+      } else {
+        const regNo = document.getElementById("announcementStudent").value;
+        if (!regNo) {
+          showMessage("announcementsMessage", "Please select a student for individual announcement.", true);
+          document.getElementById("loadingScreen").classList.add("hidden");
+          return;
+        }
+        const normalizedRegNo = regNo.replace(/\//g, "_");
+        db.ref(`announcements/individual/${normalizedRegNo}`).push(announcement)
+          .then(() => {
+            showMessage("announcementsMessage", "Announcement added successfully!", false);
+            document.getElementById("announcementTitle").value = "";
+            quill.setText('');
+            document.getElementById("announcementStudent").value = "";
+            loadAnnouncementForm();
+          })
+          .catch(error => {
+            showMessage("announcementsMessage", `Failed to add announcement: ${error.message}`, true);
+          })
+          .finally(() => {
+            document.getElementById("loadingScreen").classList.add("hidden");
+          });
+      }
+    }
+  </script>
+</body>
+</html>

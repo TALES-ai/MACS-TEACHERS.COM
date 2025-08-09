@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Portal - Upload Marks - MACS SCHOOLS EA</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #e6e9f0, #b8c6db);
+      color: #2d3748;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(to bottom, #2b6cb0, #ed8936);
+      color: #fff;
+      padding: 20px;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+    .sidebar .profile {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .sidebar .profile img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid #f6e05e;
+      margin-bottom: 10px;
+    }
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .sidebar a, .sidebar button {
+      display: flex;
+      align-items: center;
+      color: #fff;
+      padding: 15px;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.15);
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .sidebar a i, .sidebar button i {
+      margin-right: 10px;
+    }
+    .sidebar a:hover, .sidebar button:hover, .sidebar a.active {
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateX(5px);
+    }
+    .main-content {
+      flex: 1;
+      padding: 30px;
+    }
+    .section {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    .section h1 {
+      font-size: 28px;
+      color: #2b6cb0;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .section h1 i {
+      margin-right: 10px;
+    }
+    .error-message {
+      color: #e53e3e;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #fed7d7;
+      border-radius: 5px;
+    }
+    .success-message {
+      color: #38a169;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #c6f6d5;
+      border-radius: 5px;
+    }
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .loading-screen.hidden {
+      display: none;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1001;
+      display: none;
+    }
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+    }
+    select, input {
+      width: 100%;
+      max-width: 300px;
+      padding: 12px 12px 12px 40px;
+      margin: 10px 0;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    select:focus, input:focus {
+      border-color: #2b6cb0;
+      box-shadow: 0 0 5px rgba(43, 108, 176, 0.3);
+      outline: none;
+    }
+    .form-group {
+      position: relative;
+      display: inline-block;
+      margin-right: 15px;
+    }
+    .form-group i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #2b6cb0;
+      font-size: 18px;
+    }
+    button {
+      padding: 12px 20px;
+      background: #38a169;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      margin: 10px 0;
+    }
+    button:hover {
+      background: #2f855a;
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    button i {
+      margin-right: 8px;
+    }
+    .scores-table {
+      margin-top: 20px;
+      overflow-x: auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      padding: 15px;
+    }
+    .marks-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .marks-table th, .marks-table td {
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      text-align: left;
+      transition: background 0.3s;
+    }
+    .marks-table th {
+      background: #2b6cb0;
+      color: #fff;
+      font-weight: 600;
+    }
+    .marks-table tr {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .marks-table tr:hover {
+      background: #f7fafc;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .marks-table input[type="number"] {
+      width: 80px;
+      padding: 8px;
+      margin: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .marks-table input[type="text"] {
+      width: 80px;
+      padding: 8px;
+      margin: 0;
+      border: none;
+      background: none;
+      font-size: 14px;
+      color: #2d3748;
+      pointer-events: none;
+    }
+    .guide-section {
+      margin-top: 20px;
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 15px;
+      border-left: 4px solid #2b6cb0;
+      transition: max-height 0.3s ease;
+      overflow: hidden;
+    }
+    .guide-section.collapsed {
+      max-height: 60px;
+    }
+    .guide-section h3 {
+      margin: 0 0 10px;
+      color: #2b6cb0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    .guide-section h3 i {
+      margin-right: 10px;
+      transition: transform 0.3s;
+    }
+    .guide-section.collapsed h3 i {
+      transform: rotate(-90deg);
+    }
+    .guide-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .guide-table th, .guide-table td {
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      text-align: left;
+    }
+    .guide-table th {
+      background: #cce5ff;
+      color: #2d3748;
+      font-weight: 600;
+    }
+    .guide-table tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    @media (max-width: 768px) {
+      .scores-table {
+        overflow-x: auto;
+      }
+      .sidebar {
+        width: 200px;
+      }
+      .main-content {
+        padding: 15px;
+      }
+      select, input {
+        max-width: 100%;
+      }
+      .marks-table input[type="number"], .marks-table input[type="text"] {
+        width: 60px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+  </div>
+  <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()"></div>
+  <div class="popup" id="popupMessage"></div>
+  <div class="container">
+    <div class="sidebar">
+      <div class="profile">
+        <img src="https://img.icons8.com/color/80/000000/teacher.png" alt="Teacher Icon">
+        <p id="teacherName">Loading...</p>
+      </div>
+      <h2>Teacher Portal</h2>
+      <a href="teacher.html"><i class="fas fa-info-circle"></i> Guide</a>
+      <a href="students.html"><i class="fas fa-users"></i> Students</a>
+      <a href="add-student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+      <a href="marks.html" class="active"><i class="fas fa-chart-line"></i> Upload Marks</a>
+      <a href="announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a>
+      <a href="results.html"><i class="fas fa-file-alt"></i> Results</a>
+      <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+    <div class="main-content">
+      <div id="marks" class="section">
+        <h1><i class="fas fa-chart-line"></i> Upload Marks</h1>
+        <div class="form-group">
+          <i class="fas fa-school"></i>
+          <select id="marksYearSelect" onchange="updateSubjectOptions(); loadMarksForm()">
+            <option value="">Select Class</option>
+            <option value="playgroup">Play Group</option>
+            <option value="preprimary1">Pre-Primary 1</option>
+            <option value="preprimary2">Pre-Primary 2</option>
+            <option value="grade1">Grade 1</option>
+            <option value="grade2">Grade 2</option>
+            <option value="grade3">Grade 3</option>
+            <option value="grade4">Grade 4</option>
+            <option value="grade5">Grade 5</option>
+            <option value="grade6">Grade 6</option>
+            <option value="grade7">Grade 7</option>
+            <option value="grade8">Grade 8</option>
+            <option value="grade9">Grade 9</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <i class="fas fa-book"></i>
+          <select id="marksSubjectSelect" onchange="loadMarksForm()">
+            <option value="">Select a Subject</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <i class="fas fa-calendar-alt"></i>
+          <select id="termSelect" onchange="loadMarksForm()">
+            <option value="term1">Term 1</option>
+            <option value="term2">Term 2</option>
+            <option value="term3">Term 3</option>
+          </select>
+        </div>
+        <button onclick="toggleGuide()"><i class="fas fa-info-circle"></i> Toggle Grading Guide</button>
+        <div id="gradingGuide" class="guide-section collapsed">
+          <h3 onclick="toggleGuide()"><i class="fas fa-chevron-down"></i> Grading Guide</h3>
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th>Score Range</th>
+                <th>Rubric</th>
+                <th>Outcome</th>
+                <th>Comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>90 – 99</td>
+                <td>EE1</td>
+                <td>4.0</td>
+                <td>Exceeding Expectations 1</td>
+              </tr>
+              <tr>
+                <td>75 – 89</td>
+                <td>EE2</td>
+                <td>3.5</td>
+                <td>Exceeding Expectations 2</td>
+              </tr>
+              <tr>
+                <td>58 – 74</td>
+                <td>ME1</td>
+                <td>3.0</td>
+                <td>Meeting Expectations 1</td>
+              </tr>
+              <tr>
+                <td>41 – 57</td>
+                <td>ME2</td>
+                <td>2.5</td>
+                <td>Meeting Expectations 2</td>
+              </tr>
+              <tr>
+                <td>31 – 40</td>
+                <td>AE1</td>
+                <td>2.0</td>
+                <td>Approaching Expectations 1</td>
+              </tr>
+              <tr>
+                <td>21 – 30</td>
+                <td>AE2</td>
+                <td>1.5</td>
+                <td>Approaching Expectations 2</td>
+              </tr>
+              <tr>
+                <td>11 – 20</td>
+                <td>BE1</td>
+                <td>1.0</td>
+                <td>Below Expectations 1</td>
+              </tr>
+              <tr>
+                <td>1 – 10</td>
+                <td>BE2</td>
+                <td>0.5</td>
+                <td>Below Expectations 2</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="marksTable" class="scores-table"></div>
+        <button id="saveMarksBtn" onclick="saveMarks()" disabled><i class="fas fa-save"></i> Save Marks</button>
+        <div id="marksMessage" class="error-message"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
+      authDomain: "lifeflow-yhtl6.firebaseapp.com",
+      projectId: "lifeflow-yhtl6",
+      storageBucket: "lifeflow-yhtl6.firebasestorage.app",
+      messagingSenderId: "129785956666",
+      appId: "1:129785956666:web:541a08bee37c739556a803",
+      databaseURL: "https://lifeflow-yhtl6-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const subjectsByGrade = {
+      playgroup: [
+        "Language Activities",
+        "Mathematics Activities",
+        "Environmental Activities",
+        "Creative Activities"
+      ],
+      preprimary1: [
+        "Language Activities",
+        "Mathematics Activities",
+        "Environmental Activities",
+        "Kiswahili Activities",
+        "Creative Activities",
+        "Literacy Activities"
+      ],
+      preprimary2: [
+        "Language Activities",
+        "Mathematics Activities",
+        "Environmental Activities",
+        "Kiswahili Activities",
+        "Creative Activities",
+        "Literacy Activities"
+      ],
+      grade1: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Environmental Activities",
+        "CRE",
+        "Creative Arts"
+      ],
+      grade2: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Environmental Activities",
+        "CRE",
+        "Creative Arts"
+      ],
+      grade3: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Environmental Activities",
+        "CRE",
+        "Creative Arts"
+      ],
+      grade4: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Integrated Science",
+        "Pre-Technical Studies",
+        "Social Studies",
+        "Creative Arts",
+        "Agriculture",
+        "CRE"
+      ],
+      grade5: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Integrated Science",
+        "Pre-Technical Studies",
+        "Social Studies",
+        "Creative Arts",
+        "Agriculture",
+        "CRE"
+      ],
+      grade6: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Integrated Science",
+        "Pre-Technical Studies",
+        "Social Studies",
+        "Creative Arts",
+        "Agriculture",
+        "CRE"
+      ],
+      grade7: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Integrated Science",
+        "Pre-Technical Studies",
+        "Social Studies",
+        "Creative Arts",
+        "Agriculture",
+        "CRE"
+      ],
+      grade8: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Integrated Science",
+        "Pre-Technical Studies",
+        "Social Studies",
+        "Creative Arts",
+        "Agriculture",
+        "CRE"
+      ],
+      grade9: [
+        "Mathematics Activities",
+        "English Activities",
+        "Kiswahili Activities",
+        "Integrated Science",
+        "Pre-Technical Studies",
+        "Social Studies",
+        "Creative Arts",
+        "Agriculture",
+        "CRE"
+      ]
+    };
+
+    const gradingRubric = [
+      { range: [90, 99], grade: "EE1", outcome: 4.0, comment: "Exceeding Expectations 1" },
+      { range: [75, 89], grade: "EE2", outcome: 3.5, comment: "Exceeding Expectations 2" },
+      { range: [58, 74], grade: "ME1", outcome: 3.0, comment: "Meeting Expectations 1" },
+      { range: [41, 57], grade: "ME2", outcome: 2.5, comment: "Meeting Expectations 2" },
+      { range: [31, 40], grade: "AE1", outcome: 2.0, comment: "Approaching Expectations 1" },
+      { range: [21, 30], grade: "AE2", outcome: 1.5, comment: "Approaching Expectations 2" },
+      { range: [11, 20], grade: "BE1", outcome: 1.0, comment: "Below Expectations 1" },
+      { range: [1, 10], grade: "BE2", outcome: 0.5, comment: "Below Expectations 2" },
+      { range: [0, 0], grade: "", outcome: 0, comment: "" }
+    ];
+
+    auth.onAuthStateChanged(user => {
+      if (!user || localStorage.getItem("userType") !== "teacher") {
+        localStorage.clear();
+        window.location.href = "index.html";
+      } else {
+        const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
+        document.getElementById("teacherName").textContent = teacherName;
+        document.getElementById("loadingScreen").classList.add("hidden");
+        updateSubjectOptions();
+      }
+    });
+
+    function updateSubjectOptions() {
+      const form = document.getElementById("marksYearSelect").value;
+      const subjectSelect = document.getElementById("marksSubjectSelect");
+      const previousSubject = subjectSelect.value;
+      subjectSelect.innerHTML = '<option value="">Select a Subject</option>';
+      if (form && subjectsByGrade[form]) {
+        subjectsByGrade[form].forEach(subject => {
+          const option = document.createElement("option");
+          option.value = subject;
+          option.textContent = subject;
+          if (subject === previousSubject) option.selected = true;
+          subjectSelect.appendChild(option);
+        });
+      }
+      loadMarksForm();
+    }
+
+    function getGrade(score) {
+      if (!score || score < 0 || score > 100) return "";
+      for (const rubric of gradingRubric) {
+        if (score >= rubric.range[0] && score <= rubric.range[1]) {
+          return rubric.grade;
+        }
+      }
+      return "";
+    }
+
+    async function loadMarksForm() {
+      const form = document.getElementById("marksYearSelect").value;
+      const subject = document.getElementById("marksSubjectSelect").value;
+      const term = document.getElementById("termSelect").value;
+      const marksTable = document.getElementById("marksTable");
+      const saveBtn = document.getElementById("saveMarksBtn");
+
+      marksTable.innerHTML = "<p>Loading...</p>";
+      saveBtn.disabled = true;
+
+      if (!form || !subject || !term) {
+        marksTable.innerHTML = "<p>Please select a class, subject, and term.</p>";
+        return;
+      }
+
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        Object.keys(students).forEach(regNo => {
+          const student = students[regNo];
+          if (student.form === form) {
+            studentsList.push({
+              regNo,
+              name: student.profile.name,
+              stream: student.stream,
+              academics: student.academics || {}
+            });
+          }
+        });
+
+        marksTable.innerHTML = "";
+        if (studentsList.length === 0) {
+          marksTable.innerHTML = `<p>No students found in ${form.replace(/^(playgroup|preprimary|grade)/, match => match === "playgroup" ? "Play Group" : match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}.</p>`;
+          return;
+        }
+
+        let tableHTML = `<table class="marks-table">
+          <thead>
+            <tr>
+              <th>Reg No</th>
+              <th>Name</th>
+              <th>Stream</th>
+              ${term !== "term3" ? '<th>Mid Term</th><th>Mid Term Grade</th>' : ''}
+              <th>Exam</th>
+              <th>Exam Grade</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        for (const student of studentsList) {
+          const normalizedRegNo = student.regNo.replace(/\//g, "_");
+          const marksData = student.academics[term] || {};
+          const cat = marksData.cat?.[subject] || "";
+          const exam = marksData.exam?.[subject] || "";
+          const catGrade = marksData.grades?.[subject]?.cat || "";
+          const examGrade = marksData.grades?.[subject]?.exam || "";
+
+          tableHTML += `<tr>
+            <td>${student.regNo}</td>
+            <td>${student.name}</td>
+            <td>${student.stream}</td>
+            ${term !== "term3" ? `
+              <td><input type="number" id="cat_${normalizedRegNo}" value="${cat}" min="0" max="100" placeholder="Mid Term" oninput="updateGrade('${normalizedRegNo}')"></td>
+              <td><input type="text" id="catGrade_${normalizedRegNo}" value="${catGrade}" readonly></td>
+            ` : ''}
+            <td><input type="number" id="exam_${normalizedRegNo}" value="${exam}" min="0" max="100" placeholder="Exam" oninput="updateGrade('${normalizedRegNo}')"></td>
+            <td><input type="text" id="examGrade_${normalizedRegNo}" value="${examGrade}" readonly></td>
+          </tr>`;
+        }
+
+        tableHTML += "</tbody></table>";
+        marksTable.innerHTML = tableHTML;
+        studentsList.forEach(student => updateGrade(student.regNo.replace(/\//g, "_")));
+        saveBtn.disabled = false;
+      } catch (error) {
+        console.error("Load marks form error:", error);
+        marksTable.innerHTML = `<div class="error-message">Failed to load marks form: ${error.message}</div>`;
+      }
+    }
+
+    function updateGrade(normalizedRegNo) {
+      const term = document.getElementById("termSelect").value;
+      const catInput = term !== "term3" ? document.getElementById(`cat_${normalizedRegNo}`) : null;
+      const examInput = document.getElementById(`exam_${normalizedRegNo}`);
+      const catGradeInput = term !== "term3" ? document.getElementById(`catGrade_${normalizedRegNo}`) : null;
+      const examGradeInput = document.getElementById(`examGrade_${normalizedRegNo}`);
+      const cat = catInput ? parseInt(catInput.value) || 0 : 0;
+      const exam = parseInt(examInput.value) || 0;
+      if (catGradeInput) catGradeInput.value = getGrade(cat);
+      examGradeInput.value = getGrade(exam);
+    }
+
+    async function saveMarks() {
+      const form = document.getElementById("marksYearSelect").value;
+      const subject = document.getElementById("marksSubjectSelect").value;
+      const term = document.getElementById("termSelect").value;
+
+      if (!form || !subject || !term) {
+        showMessage("marksMessage", "Please select a class, subject, and term.", true);
+        return;
+      }
+
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+        let updates = {};
+        let hasValidInput = false;
+
+        Object.keys(students).forEach(regNo => {
+          const student = students[regNo];
+          if (student.form === form) {
+            studentsList.push({ regNo, name: student.profile.name, academics: student.academics || {} });
+          }
+        });
+
+        for (const student of studentsList) {
+          const normalizedRegNo = student.regNo.replace(/\//g, "_");
+          const catInput = term !== "term3" ? document.getElementById(`cat_${normalizedRegNo}`)?.value : null;
+          const examInput = document.getElementById(`exam_${normalizedRegNo}`)?.value;
+          const catGradeInput = term !== "term3" ? document.getElementById(`catGrade_${normalizedRegNo}`)?.value : null;
+          const examGradeInput = document.getElementById(`examGrade_${normalizedRegNo}`)?.value;
+
+          const existingMarks = student.academics[term] || { cat: {}, exam: {}, grades: {} };
+          let studentMarks = {
+            cat: { ...existingMarks.cat },
+            exam: { ...existingMarks.exam },
+            grades: { ...existingMarks.grades }
+          };
+
+          if (catInput && term !== "term3") {
+            const catValue = parseInt(catInput);
+            if (catValue >= 0 && catValue <= 100) {
+              studentMarks.cat[subject] = catValue;
+              studentMarks.grades[subject] = studentMarks.grades[subject] || {};
+              studentMarks.grades[subject].cat = catGradeInput || "";
+              hasValidInput = true;
+            } else if (catInput !== "") {
+              showMessage("marksMessage", `Invalid Mid Term mark for ${student.name} in ${subject}. Must be 0-100.`, true);
+              return;
+            } else {
+              delete studentMarks.cat[subject];
+              if (studentMarks.grades[subject]) delete studentMarks.grades[subject].cat;
+            }
+          }
+
+          if (examInput) {
+            const examValue = parseInt(examInput);
+            if (examValue >= 0 && examValue <= 100) {
+              studentMarks.exam[subject] = examValue;
+              studentMarks.grades[subject] = studentMarks.grades[subject] || {};
+              studentMarks.grades[subject].exam = examGradeInput || "";
+              hasValidInput = true;
+            } else if (examInput !== "") {
+              showMessage("marksMessage", `Invalid Exam mark for ${student.name} in ${subject}. Must be 0-100.`, true);
+              return;
+            } else {
+              delete studentMarks.exam[subject];
+              if (studentMarks.grades[subject]) delete studentMarks.grades[subject].exam;
+            }
+          }
+
+          if (studentMarks.grades[subject] && Object.keys(studentMarks.grades[subject]).length === 0) {
+            delete studentMarks.grades[subject];
+          }
+          if (Object.keys(studentMarks.cat).length === 0) delete studentMarks.cat;
+          if (Object.keys(studentMarks.exam).length === 0) delete studentMarks.exam;
+          if (Object.keys(studentMarks.grades).length === 0) delete studentMarks.grades;
+
+          if (Object.keys(studentMarks).length > 0) {
+            updates[`users/students/${normalizedRegNo}/academics/${term}`] = studentMarks;
+          }
+        }
+
+        if (!hasValidInput) {
+          showMessage("marksMessage", "Please enter at least one valid mark for any student.", true);
+          return;
+        }
+
+        document.getElementById("loadingScreen").classList.remove("hidden");
+        document.getElementById("saveMarksBtn").disabled = true;
+
+        await db.ref().update(updates);
+        showMessage("marksMessage", "Marks and grades saved successfully!", false);
+        loadMarksForm();
+      } catch (error) {
+        console.error("Save marks error:", error);
+        showMessage("marksMessage", `Failed to save marks: ${error.message}`, true);
+      } finally {
+        document.getElementById("loadingScreen").classList.add("hidden");
+        document.getElementById("saveMarksBtn").disabled = false;
+      }
+    }
+
+    function toggleGuide() {
+      const guide = document.getElementById("gradingGuide");
+      guide.classList.toggle("collapsed");
+    }
+  </script>
+</body>
+</html>

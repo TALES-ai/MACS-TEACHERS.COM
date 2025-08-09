@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Portal - Students - MACS SCHOOLS EA</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #e6e9f0, #b8c6db);
+      color: #2d3748;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(to bottom, #2b6cb0, #ed8936);
+      color: #fff;
+      padding: 20px;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+    .sidebar .profile {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .sidebar .profile img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid #f6e05e;
+      margin-bottom: 10px;
+    }
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .sidebar a, .sidebar button {
+      display: flex;
+      align-items: center;
+      color: #fff;
+      padding: 15px;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.15);
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .sidebar a i, .sidebar button i {
+      margin-right: 10px;
+    }
+    .sidebar a:hover, .sidebar button:hover, .sidebar a.active {
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateX(5px);
+    }
+    .main-content {
+      flex: 1;
+      padding: 30px;
+    }
+    .section {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    .section h1 {
+      font-size: 28px;
+      color: #2b6cb0;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .section h1 i {
+      margin-right: 10px;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1001;
+      display: none;
+    }
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+    }
+    .error-message {
+      color: #e53e3e;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #fed7d7;
+      border-radius: 5px;
+    }
+    .success-message {
+      color: #38a169;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #c6f6d5;
+      border-radius: 5px;
+    }
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .loading-screen.hidden {
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background: #2b6cb0;
+      color: #fff;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #f7fafc;
+    }
+    tr:hover {
+      background: #edf2f7;
+      transition: background 0.2s;
+    }
+    .search-bar, select {
+      width: 100%;
+      max-width: 300px;
+      padding: 12px;
+      margin: 0 10px 15px 0;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .search-bar:focus, select:focus {
+      border-color: #2b6cb0;
+      box-shadow: 0 0 5px rgba(43, 108, 176, 0.3);
+      outline: none;
+    }
+    .filter-container {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .pdf-btn {
+      padding: 8px 15px;
+      background: #38a169;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .pdf-btn:hover {
+      background: #2f855a;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+  </div>
+  <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()"></div>
+  <div class="popup" id="popupMessage"></div>
+  <div class="container">
+    <div class="sidebar">
+      <div class="profile">
+        <img src="https://img.icons8.com/color/80/000000/teacher.png" alt="Teacher Icon">
+        <p id="teacherName">Loading...</p>
+      </div>
+      <h2>Teacher Portal</h2>
+      <a href="teacher.html"><i class="fas fa-info-circle"></i> Guide</a>
+      <a href="students.html" class="active"><i class="fas fa-users"></i> Students</a>
+      <a href="add-student.html"><i class="fas fa-user-plus"></i> Add Student</a>
+      <a href="marks.html"><i class="fas fa-chart-line"></i> Upload Marks</a>
+      <a href="announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a>
+      <a href="results.html"><i class="fas fa-file-alt"></i> Results</a>
+      <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+    <div class="main-content">
+      <div id="students" class="section">
+        <h1><i class="fas fa-users"></i> Students</h1>
+        <div class="filter-container">
+          <input type="text" id="searchStudent" class="search-bar" placeholder="Search by Reg No or Name..." onkeyup="searchStudents()">
+          <select id="yearSelect" onchange="loadStudents()">
+            <option value="playgroup">Play Group</option>
+            <option value="preprimary1">Pre-Primary 1</option>
+            <option value="preprimary2">Pre-Primary 2</option>
+            <option value="grade1">Grade 1</option>
+            <option value="grade2">Grade 2</option>
+            <option value="grade3">Grade 3</option>
+            <option value="grade4">Grade 4</option>
+            <option value="grade5">Grade 5</option>
+            <option value="grade6">Grade 6</option>
+            <option value="grade7">Grade 7</option>
+            <option value="grade8">Grade 8</option>
+            <option value="grade9">Grade 9</option>
+          </select>
+          <select id="streamSelect" onchange="loadStudents()">
+            <option value="">All Streams</option>
+          </select>
+        </div>
+        <div id="studentsMessage" class="error-message"></div>
+        <table id="studentsTable">
+          <thead>
+            <tr>
+              <th>Reg No</th>
+              <th>Name</th>
+              <th>Stream</th>
+              <th>Class</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
+      authDomain: "lifeflow-yhtl6.firebaseapp.com",
+      projectId: "lifeflow-yhtl6",
+      storageBucket: "lifeflow-yhtl6.firebasestorage.app",
+      messagingSenderId: "129785956666",
+      appId: "1:129785956666:web:541a08bee37c739556a803",
+      databaseURL: "https://lifeflow-yhtl6-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    auth.onAuthStateChanged(user => {
+      if (!user || localStorage.getItem("userType") !== "teacher") {
+        localStorage.clear();
+        window.location.href = "index.html";
+      } else {
+        const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
+        document.getElementById("teacherName").textContent = teacherName;
+        document.getElementById("loadingScreen").classList.add("hidden");
+        loadStreams();
+        loadStudents();
+      }
+    });
+
+    function displayClass(form) {
+      if (form === "playgroup") return "Play Group";
+      const match = form.match(/^(preprimary|grade)(\d+)$/);
+      if (match) {
+        const prefix = match[1] === "preprimary" ? "Pre-Primary " : "Grade ";
+        return prefix + match[2];
+      }
+      return form.charAt(0).toUpperCase() + form.slice(1);
+    }
+
+    async function loadStreams() {
+      const streamSelect = document.getElementById("streamSelect");
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        const streams = new Set();
+        Object.values(students).forEach(student => {
+          if (student.stream) streams.add(student.stream);
+        });
+        streamSelect.innerHTML = '<option value="">All Streams</option>';
+        Array.from(streams).sort().forEach(stream => {
+          streamSelect.innerHTML += `<option value="${stream}">${stream}</option>`;
+        });
+      } catch (error) {
+        console.error("Load streams error:", error);
+        showPopup(`Failed to load streams: ${error.message}`, true);
+      }
+    }
+
+    async function loadStudents() {
+      const form = document.getElementById("yearSelect").value;
+      const stream = document.getElementById("streamSelect").value;
+      const studentsBody = document.getElementById("studentsBody");
+      studentsBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        Object.keys(students).forEach(regNo => {
+          const student = students[regNo];
+          if (student.form === form && (!stream || student.stream === stream)) {
+            studentsList.push({
+              regNo,
+              name: student.profile.name,
+              stream: student.stream,
+              form: student.form
+            });
+          }
+        });
+
+        studentsBody.innerHTML = "";
+        if (studentsList.length === 0) {
+          studentsBody.innerHTML = `<tr><td colspan="5">No students found in ${displayClass(form)}${stream ? ` (${stream})` : ""}.</td></tr>`;
+          return;
+        }
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        studentsList.forEach(student => {
+          studentsBody.innerHTML += `<tr>
+            <td>${student.regNo}</td>
+            <td>${student.name}</td>
+            <td>${student.stream}</td>
+            <td>${displayClass(student.form)}</td>
+            <td><button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button></td>
+          </tr>`;
+        });
+      } catch (error) {
+        console.error("Load students error:", error);
+        studentsBody.innerHTML = `<tr><td colspan="5">Failed to load students: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    function searchStudents() {
+      const searchTerm = document.getElementById("searchStudent").value.toLowerCase();
+      const form = document.getElementById("yearSelect").value;
+      const stream = document.getElementById("streamSelect").value;
+      const studentsBody = document.getElementById("studentsBody");
+      studentsBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
+
+      db.ref("users/students").once("value", (snapshot) => {
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        Object.keys(students).forEach(regNo => {
+          const student = students[regNo];
+          if (student.form === form && (!stream || student.stream === stream) && 
+              (student.profile.name.toLowerCase().includes(searchTerm) || regNo.toLowerCase().includes(searchTerm))) {
+            studentsList.push({
+              regNo,
+              name: student.profile.name,
+              stream: student.stream,
+              form: student.form
+            });
+          }
+        });
+
+        studentsBody.innerHTML = "";
+        if (studentsList.length === 0) {
+          studentsBody.innerHTML = `<tr><td colspan="5">No students found matching '${searchTerm}' in ${displayClass(form)}${stream ? ` (${stream})` : ""}.</td></tr>`;
+          return;
+        }
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        studentsList.forEach(student => {
+          studentsBody.innerHTML += `<tr>
+            <td>${student.regNo}</td>
+            <td>${student.name}</td>
+            <td>${student.stream}</td>
+            <td>${displayClass(student.form)}</td>
+            <td><button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button></td>
+          </tr>`;
+        });
+      }).catch(error => {
+        studentsBody.innerHTML = `<tr><td colspan="5">Failed to search students: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      });
+    }
+
+    function downloadStudentPDF(regNo) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const normalizedRegNo = regNo.replace(/\//g, "_");
+      const teacherName = document.getElementById("teacherName").textContent;
+      const date = new Date().toLocaleDateString();
+      const logoUrl = "https://img.icons8.com/color/80/000000/teacher.png";
+
+      document.getElementById("loadingScreen").classList.remove("hidden");
+      db.ref(`users/students/${normalizedRegNo}`).once("value", (snapshot) => {
+        const student = snapshot.val() || {};
+        const transactions = student.fees?.transactions || [];
+        const totalPaid = Array.isArray(transactions) ? transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0) : 0;
+        const balance = (student.fees?.totalExpected || 0) - totalPaid;
+
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = logoUrl;
+        img.onload = () => {
+          renderPDFContent(doc, teacherName, date, regNo, student, totalPaid, balance);
+          doc.save(`${regNo}_profile.pdf`);
+          document.getElementById("loadingScreen").classList.add("hidden");
+        };
+        img.onerror = () => {
+          console.error("Failed to load logo");
+          renderPDFContent(doc, teacherName, date, regNo, student, totalPaid, balance);
+          doc.save(`${regNo}_profile.pdf`);
+          document.getElementById("loadingScreen").classList.add("hidden");
+        };
+      }).catch(error => {
+        console.error("Download student PDF error:", error);
+        showPopup(`Failed to generate PDF: ${error.message}`, true);
+        document.getElementById("loadingScreen").classList.add("hidden");
+      });
+    }
+
+    function renderPDFContent(doc, teacherName, date, regNo, student, totalPaid, balance) {
+      doc.setFillColor(229, 231, 235);
+      doc.rect(0, 0, 210, 297, "F");
+      doc.setFillColor(44, 82, 176);
+      doc.rect(0, 0, 210, 40, "F");
+      doc.addImage("https://img.icons8.com/color/80/000000/teacher.png", "PNG", 10, 10, 20, 20);
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.text("MACS SCHOOLS EAST AFRICA", 35, 20);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("P.O. Box 102-40502, Nyamira Keroka, Kenya", 35, 28);
+      doc.setTextColor(200, 200, 200);
+      doc.text(`Prepared by: ${teacherName}`, 10, 35);
+      doc.text(`Date: ${date}`, 160, 35);
+
+      doc.setFontSize(14);
+      doc.setTextColor(44, 82, 176);
+      doc.setFont("helvetica", "bold");
+      doc.text("Student Profile Report", 10, 50);
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(44, 82, 176);
+      doc.line(10, 52, 80, 52);
+
+      const profileData = [
+        ["Registration No", regNo],
+        ["Full Name", student.profile?.name || "N/A"],
+        ["Gender", student.profile?.gender || "N/A"],
+        ["Religion", student.profile?.religion || "N/A"],
+        ["Class", displayClass(student.form) || "N/A"],
+        ["Stream", student.stream || "N/A"],
+        ["Phone", student.profile?.phone || "N/A"],
+        ["Email", student.profile?.email || "N/A"],
+        ["Emergency Contact", student.profile?.emergencyContact || "N/A"],
+        ["Parent Name", student.profile?.parentName || "N/A"],
+        ["Parent Phone", student.profile?.parentPhone || "N/A"],
+        ["Parent Email", student.profile?.parentEmail || "N/A"],
+        ["Parent Occupation", student.profile?.parentOccupation || "N/A"],
+        ["Parent Marital Status", student.profile?.parentMaritalStatus || "N/A"],
+        ["Guardian Relationship", student.profile?.guardianRelationship || "N/A"],
+        ["County", student.profile?.county || "N/A"],
+        ["Address", student.profile?.address || "N/A"],
+        ["Town", student.profile?.town || "N/A"]
+      ];
+      doc.autoTable({
+        startY: 60,
+        body: profileData,
+        theme: "grid",
+        styles: { cellPadding: 4, fontSize: 11, lineColor: [203, 213, 225], lineWidth: 0.2, font: "helvetica" },
+        headStyles: { fillColor: [44, 82, 176], textColor: [255, 255, 255], fontStyle: "bold" },
+        bodyStyles: { alternateRowStyles: { fillColor: [243, 244, 246] } },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 }, 1: { cellWidth: 120 } }
+      });
+
+      const financialY = doc.autoTable.previous.finalY + 10;
+      doc.setFontSize(14);
+      doc.setTextColor(44, 82, 176);
+      doc.setFont("helvetica", "bold");
+      doc.text("Financial Details", 10, financialY);
+      doc.setLineWidth(0.5);
+      doc.line(10, financialY + 2, 70, financialY + 2);
+
+      const financialData = [
+        ["Sponsor", student.fees?.sponsor || "N/A"],
+        ["Total Fees (KES)", student.fees?.totalExpected || "0"],
+        ["Fees Paid (KES)", totalPaid || "0"],
+        ["Balance (KES)", balance || "0"],
+        ["Admission Date", new Date().toLocaleDateString() || "N/A"],
+        ["Status", "Active"],
+        ["Remarks", "In good financial standing"]
+      ];
+      doc.autoTable({
+        startY: financialY + 10,
+        body: financialData,
+        theme: "grid",
+        styles: { cellPadding: 4, fontSize: 11, lineColor: [203, 213, 225], lineWidth: 0.2, font: "helvetica" },
+        headStyles: { fillColor: [44, 82, 176], textColor: [255, 255, 255], fontStyle: "bold" },
+        bodyStyles: { alternateRowStyles: { fillColor: [243, 244, 246] } },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 }, 1: { cellWidth: 120 } }
+      });
+
+      const signatureY = doc.autoTable.previous.finalY + 15;
+      doc.setFontSize(10);
+      doc.setTextColor(44, 82, 176);
+      doc.setFont("helvetica", "italic");
+      doc.text("Prepared by Director of Studies", 10, signatureY);
+      doc.setLineWidth(0.3);
+      doc.line(10, signatureY + 5, 70, signatureY + 5);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text("MACS Schools EA - Official Report", 10, 290);
+    }
+  </script>
+</body>
+</html>
