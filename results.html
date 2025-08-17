@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -46,119 +7,214 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
+      font-family: 'Roboto', Arial, sans-serif;
       margin: 0;
-      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
-      color: #333;
+      background: linear-gradient(135deg, #e0e7ff, #a5b4fc);
+      color: #1e293b;
+      overflow-x: hidden;
     }
     .container {
       display: flex;
       min-height: 100vh;
     }
     .sidebar {
-      width: 250px;
-      background: linear-gradient(to bottom, #6b48ff, #ff6f61);
+      width: 280px;
+      background: linear-gradient(to bottom, #4f46e5, #f43f5e);
       color: #fff;
-      padding: 20px;
-      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
-      position: relative;
+      padding: 30px 20px;
+      box-shadow: 5px 0 20px rgba(0, 0, 0, 0.15);
+      position: fixed;
+      height: 100%;
+      overflow-y: auto;
+      transition: width 0.3s ease;
+    }
+    .sidebar:hover {
+      width: 300px;
     }
     .sidebar .profile {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 40px;
     }
     .sidebar .profile img {
-      width: 80px;
-      height: 80px;
+      width: 100px;
+      height: 100px;
       border-radius: 50%;
-      border: 3px solid #ffd700;
-      margin-bottom: 10px;
+      border: 4px solid #fef08a;
+      margin-bottom: 15px;
+      transition: transform 0.3s;
+    }
+    .sidebar .profile img:hover {
+      transform: rotate(360deg) scale(1.1);
     }
     .sidebar h2 {
-      font-size: 24px;
-      margin-bottom: 30px;
+      font-size: 28px;
+      margin-bottom: 40px;
       text-align: center;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+      letter-spacing: 1px;
     }
     .sidebar a, .sidebar button {
       display: flex;
       align-items: center;
       color: #fff;
-      padding: 15px;
+      padding: 15px 20px;
       text-decoration: none;
-      background: rgba(255, 255, 255, 0.1);
-      margin-bottom: 10px;
-      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      margin-bottom: 12px;
+      border-radius: 10px;
       font-size: 16px;
-      transition: background 0.3s;
+      transition: all 0.3s ease;
     }
     .sidebar a i, .sidebar button i {
-      margin-right: 10px;
+      margin-right: 12px;
+      font-size: 18px;
+      transition: transform 0.3s;
+    }
+    .sidebar a:hover i, .sidebar button:hover i {
+      transform: rotate(20deg);
     }
     .sidebar a:hover, .sidebar button:hover, .sidebar a.active {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.35);
+      transform: translateX(8px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     .main-content {
       flex: 1;
-      padding: 30px;
+      margin-left: 280px;
+      padding: 40px;
+      background: #f8fafc;
+      transition: margin-left 0.3s ease;
+    }
+    .sidebar:hover ~ .main-content {
+      margin-left: 300px;
     }
     .section {
       background: #fff;
       padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
     }
     .section h1 {
+      font-size: 32px;
+      color: #4f46e5;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      font-weight: 600;
+    }
+    .section h1 i {
+      margin-right: 12px;
       font-size: 28px;
-      color: #6b48ff;
+      color: #f43f5e;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .form-group {
       margin-bottom: 20px;
+      position: relative;
+    }
+    .form-group label {
+      font-weight: 600;
+      color: #1e293b;
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .form-group select {
+      width: 100%;
+      max-width: 400px;
+      padding: 12px 12px 12px 40px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+      transition: all 0.3s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+    }
+    .form-group select:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 8px rgba(79, 70, 229, 0.3);
+      outline: none;
+    }
+    .form-group i {
+      position: absolute;
+      left: 12px;
+      top: 38px;
+      color: #4f46e5;
+      font-size: 18px;
+    }
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(to right, #f43f5e, #fb923c);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      font-weight: 500;
+      margin-right: 10px;
+    }
+    button i {
+      margin-right: 10px;
+      font-size: 16px;
+    }
+    button:hover {
+      background: linear-gradient(to right, #fb923c, #f43f5e);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .error-message, .success-message {
+      max-width: 600px;
+      font-size: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 15px 0;
+      opacity: 0;
+      animation: fadeInOut 6s forwards;
       display: flex;
       align-items: center;
     }
-    .section h1 i {
+    .error-message i, .success-message i {
       margin-right: 10px;
-    }
-    .popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      z-index: 1001;
-      display: none;
-    }
-    .popup-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      display: none;
+      font-size: 18px;
     }
     .error-message {
-      color: #ff4444;
-      font-size: 16px;
-      margin: 15px 0;
-      padding: 10px;
-      background: #ffebee;
-      border-radius: 5px;
+      color: #dc2626;
+      background: #fee2e2;
     }
     .success-message {
-      color: #00cc00;
-      font-size: 16px;
-      margin: 15px 0;
-      padding: 10px;
-      background: #e8f5e9;
-      border-radius: 5px;
+      color: #15803d;
+      background: #dcfce7;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
     }
     .loading-screen {
       position: fixed;
@@ -166,66 +222,183 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.9);
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
+      z-index: 2000;
+      backdrop-filter: blur(5px);
     }
     .loading-screen.hidden {
       display: none;
     }
-    .dropdown {
-      margin-bottom: 15px;
+    .loading-screen div {
+      font-size: 18px;
+      color: #4f46e5;
+      display: flex;
+      align-items: center;
     }
-    .dropdown select {
-      width: 100%;
-      padding: 10px;
-      border: 2px solid #ccc;
-      border-radius: 5px;
-      font-size: 16px;
-      background: #fff;
-      transition: border-color 0.3s;
+    .loading-screen i {
+      margin-right: 10px;
+      font-size: 24px;
+      animation: spin 1s linear infinite;
     }
-    .dropdown select:hover {
-      border-color: #6b48ff;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .timestamp {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 20px;
+      text-align: right;
+      font-style: italic;
     }
     table {
       width: 100%;
       border-collapse: collapse;
+      background: #fff;
       margin-top: 20px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ddd;
+    table th, table td {
+      border: 1px solid #d1d5db;
+      padding: 8px;
+      text-align: center;
+    }
+    table th {
+      background-color: #dbeafe;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    table td {
+      background-color: #f9fafb;
+    }
+    table tr:nth-child(even) {
+      background-color: #f1f5f9;
+    }
+    table tr:hover {
+      background-color: #e0e7ff;
+      transition: background-color 0.2s;
+    }
+    .results-table-container {
+      max-width: 100%;
+      overflow-x: auto;
+      margin-top: 20px;
+      animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .summary {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #1e293b;
+      font-weight: 600;
       text-align: left;
+      background: #e0e7ff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
     }
-    th {
-      background: #6b48ff;
-      color: #fff;
+    .summary i {
+      margin-right: 10px;
+      color: #4f46e5;
+      font-size: 20px;
     }
-    tr:nth-child(even) {
-      background: #f9f9f9;
+    .top-performers {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.5s ease-in;
     }
-    tr:hover {
-      background: #f1f1f1;
+    .top-performers h3 {
+      font-size: 24px;
+      color: #4f46e5;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+    .top-performers h3 i {
+      margin-right: 10px;
+      color: #f43f5e;
+    }
+    .top-performers ul {
+      list-style: none;
+      padding: 0;
+    }
+    .top-performers li {
+      font-size: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+    .top-performers li i {
+      margin-right: 10px;
+      font-size: 18px;
+    }
+    .top-performers li:nth-child(1) i {
+      color: #ffd700;
+    }
+    .top-performers li:nth-child(2) i {
+      color: #c0c0c0;
+    }
+    .top-performers li:nth-child(3) i {
+      color: #cd7f32;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 220px;
+      }
+      .main-content {
+        margin-left: 220px;
+        padding: 20px;
+      }
+      .form-group select {
+        max-width: 100%;
+        font-size: 14px;
+      }
+      table {
+        font-size: 12px;
+      }
+      table th, table td {
+        padding: 6px;
+      }
+    }
+    @media (max-width: 480px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 15px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="loading-screen" id="loadingScreen">
-    <div><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+    <div><i class="fas fa-spinner"></i> Processing...</div>
   </div>
-  <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()"></div>
-  <div class="popup" id="popupMessage"></div>
   <div class="container">
     <div class="sidebar">
       <div class="profile">
-        <img src="https://img.icons8.com/color/80/000000/teacher.png" alt="Teacher Icon">
+        <img src="https://img.icons8.com/color/100/000000/teacher.png" alt="Teacher Icon">
         <p id="teacherName">Loading...</p>
       </div>
       <h2>Teacher Portal</h2>
-      <a href="guide.html"><i class="fas fa-info-circle"></i> Guide</a>
+      <a href="teacher.html"><i class="fas fa-info-circle"></i> Guide</a>
       <a href="students.html"><i class="fas fa-users"></i> Students</a>
       <a href="add-student.html"><i class="fas fa-user-plus"></i> Add Student</a>
       <a href="marks.html"><i class="fas fa-chart-line"></i> Upload Marks</a>
@@ -235,50 +408,43 @@
     </div>
     <div class="main-content">
       <div id="results" class="section">
-        <h1><i class="fas fa-file-alt"></i> Student Results</h1>
-        <div class="dropdown">
-          <select id="classSelect" onchange="fetchStudents()">
-            <option value="">Select Class</option>
-            <option value="playgroup">Playgroup</option>
-            <option value="preprimary1">Pre-Primary 1</option>
-            <option value="grade1">Grade 1</option>
-            <option value="grade2">Grade 2</option>
-            <option value="grade3">Grade 3</option>
-            <option value="grade4">Grade 4</option>
-            <option value="grade5">Grade 5</option>
-            <option value="grade6">Grade 6</option>
-            <option value="grade7">Grade 7</option>
-            <option value="grade8">Grade 8</option>
-            <option value="grade9">Grade 9</option>
-          </select>
-        </div>
-        <div class="dropdown">
-          <select id="termSelect" onchange="fetchResults()">
+        <h1><i class="fas fa-file-alt"></i> Class Results</h1>
+        <div class="timestamp" id="currentTime"></div>
+        <div class="form-group">
+          <label for="termSelect">Term</label>
+          <i class="fas fa-calendar-alt"></i>
+          <select id="termSelect" onchange="loadResults()">
             <option value="">Select Term</option>
             <option value="term1">Term 1</option>
             <option value="term2">Term 2</option>
             <option value="term3">Term 3</option>
           </select>
         </div>
-        <div class="dropdown">
-          <select id="assessmentSelect" onchange="fetchResults()">
-            <option value="">Select Assessment Type</option>
-            <option value="cat">CAT</option>
-            <option value="exam">Exam</option>
+        <div class="form-group">
+          <label for="assessmentType">Assessment Type</label>
+          <i class="fas fa-list"></i>
+          <select id="assessmentType" onchange="loadResults()">
+            <option value="">Select Assessment</option>
+            <option value="cat">CAT (Mid-Term)</option>
+            <option value="exam">End-Term Exam</option>
           </select>
         </div>
-        <table id="resultsTable">
-          <thead>
-            <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-              <th>Subject</th>
-              <th>Marks</th>
-              <th>Grade</th>
-            </tr>
-          </thead>
-          <tbody id="resultsBody"></tbody>
-        </table>
+        <div class="form-group">
+          <label for="classSelect">Class</label>
+          <i class="fas fa-school"></i>
+          <select id="classSelect" onchange="loadResults()">
+            <option value="">Select Class</option>
+          </select>
+        </div>
+        <button onclick="loadResults()"><i class="fas fa-search"></i> Load Results</button>
+        <button onclick="generatePDF()" disabled id="pdfButton"><i class="fas fa-file-pdf"></i> Generate PDF</button>
+        <div id="resultsMessage" class="error-message"></div>
+        <div id="topPerformers" class="top-performers" style="display: none;">
+          <h3><i class="fas fa-trophy"></i> Top Performers</h3>
+          <ul></ul>
+        </div>
+        <div class="results-table-container" id="resultsTable"></div>
+        <div id="summary" class="summary"></div>
       </div>
     </div>
   </div>
@@ -298,6 +464,33 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
+    const gradingTable = [
+      { range: [90, 99], rubric: "E.E 1", outcome: 4.0 },
+      { range: [75, 89], rubric: "E.E 2", outcome: 3.5 },
+      { range: [58, 74], rubric: "M.E 1", outcome: 3.0 },
+      { range: [41, 57], rubric: "M.E 2", outcome: 2.5 },
+      { range: [31, 40], rubric: "A.E 1", outcome: 2.0 },
+      { range: [21, 30], rubric: "A.E 2", outcome: 1.5 },
+      { range: [11, 20], rubric: "B.E 1", outcome: 1.0 },
+      { range: [1, 10], rubric: "B.E 2", outcome: 0.5 },
+      { range: [0, 0], rubric: "B.E 2", outcome: 0.5 }
+    ];
+
+    function updateTimestamp() {
+      const timestampElement = document.getElementById("currentTime");
+      const now = new Date();
+      timestampElement.textContent = `Last Updated: ${now.toLocaleString('en-US', { 
+        timeZone: 'Africa/Nairobi', 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: 'numeric', 
+        minute: 'numeric', 
+        hour12: true 
+      })}`;
+    }
+
     auth.onAuthStateChanged(user => {
       if (!user || localStorage.getItem("userType") !== "teacher") {
         localStorage.clear();
@@ -306,22 +499,321 @@
         const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
         document.getElementById("teacherName").textContent = teacherName;
         document.getElementById("loadingScreen").classList.add("hidden");
-        fetchStudents();
+        updateTimestamp();
+        setInterval(updateTimestamp, 60000);
+        loadClasses();
       }
     });
 
-    function showPopup(message, isError = false) {
-      const popup = document.getElementById("popupMessage");
-      popup.textContent = message;
-      popup.className = `popup ${isError ? 'error-message' : 'success-message'}`;
-      popup.style.display = "block";
-      document.getElementById("popupOverlay").style.display = "block";
-      setTimeout(hidePopup, 3000);
+    function showMessage(elementId, message, isError = true) {
+      const messageDiv = document.getElementById(elementId);
+      messageDiv.innerHTML = (isError ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-check-circle"></i>') + message;
+      messageDiv.className = isError ? "error-message" : "success-message";
+      messageDiv.style.display = "block";
+      setTimeout(() => {
+        messageDiv.style.display = "none";
+      }, 6000);
     }
 
-    function hidePopup() {
-      document.getElementById("popupMessage").style.display = "none";
-      document.getElementById("popupOverlay").style.display = "none";
+    function loadClasses() {
+      const classSelect = document.getElementById("classSelect");
+      classSelect.innerHTML = "<option value=''>Select Class</option>";
+      db.ref("users/students").once("value")
+        .then(snapshot => {
+          const students = snapshot.val() || {};
+          const classes = new Set();
+          Object.values(students).forEach(student => {
+            if (student.form) {
+              classes.add(student.form);
+            }
+          });
+          Array.from(classes).sort((a, b) => {
+            const order = ["playgroup", "preprimary1", "preprimary2", "grade1", "grade2", "grade3", "grade4", "grade5", "grade6", "grade7", "grade8", "grade9"];
+            return order.indexOf(a) - order.indexOf(b);
+          }).forEach(cls => {
+            const displayClass = cls.replace(/^(playgroup|preprimary|grade)/, match => ({
+              playgroup: "Playgroup",
+              preprimary: "Pre-Primary ",
+              grade: "Grade "
+            }[match])).replace(/(\d)$/, " $1");
+            classSelect.innerHTML += `<option value="${cls}">${displayClass}</option>`;
+          });
+          if (classes.size === 0) {
+            showMessage("resultsMessage", "No classes found in the database.", true);
+          }
+        })
+        .catch(error => {
+          showMessage("resultsMessage", `Failed to load classes: ${error.message}`, true);
+        });
+    }
+
+    function getGradeDetails(mark) {
+      const grade = gradingTable.find(g => mark >= g.range[0] && mark <= g.range[1]) || gradingTable[gradingTable.length - 1];
+      return { rubric: grade.rubric, outcome: grade.outcome };
+    }
+
+    function abbreviateSubject(subject) {
+      const subjectMap = {
+        "Mathematics": "Math",
+        "Agriculture": "Agric",
+        "English": "Eng",
+        "Kiswahili": "Kisw",
+        "Science": "Sci",
+        "Social Studies": "Soc",
+        "Creative Arts": "Crea",
+        "Religious Education": "Rel",
+        "Physical Education": "P.E"
+      };
+      return subjectMap[subject] || subject.slice(0, 4);
+    }
+
+    function loadResults() {
+      const termSelect = document.getElementById("termSelect").value;
+      const assessmentType = document.getElementById("assessmentType").value;
+      const className = document.getElementById("classSelect").value;
+      const resultsTable = document.getElementById("resultsTable");
+      const pdfButton = document.getElementById("pdfButton");
+      const summaryDiv = document.getElementById("summary");
+      const topPerformersDiv = document.getElementById("topPerformers");
+      const teacherName = document.getElementById("teacherName").textContent;
+
+      if (!termSelect || !assessmentType || !className) {
+        showMessage("resultsMessage", "Please select term, assessment type, and class.", true);
+        resultsTable.innerHTML = "";
+        summaryDiv.innerHTML = "";
+        topPerformersDiv.style.display = "none";
+        pdfButton.disabled = true;
+        return;
+      }
+
+      const displayClass = className.replace(/^(playgroup|preprimary|grade)/, match => ({
+        playgroup: "Playgroup",
+        preprimary: "Pre-Primary ",
+        grade: "Grade "
+      }[match])).replace(/(\d)$/, " $1");
+      const assessmentLabel = assessmentType === "cat" ? "CAT (Mid-Term)" : "End-Term Exam";
+
+      document.getElementById("loadingScreen").classList.remove("hidden");
+      resultsTable.innerHTML = "";
+      summaryDiv.innerHTML = "";
+      topPerformersDiv.style.display = "none";
+      pdfButton.disabled = true;
+
+      db.ref("users/students").once("value")
+        .then(snapshot => {
+          const students = snapshot.val() || {};
+          const results = [];
+          const subjects = new Set();
+
+          Object.entries(students).forEach(([regNo, student]) => {
+            if (student.form === className && student.academics && student.academics[termSelect] && student.academics[termSelect][assessmentType]) {
+              const marks = student.academics[termSelect][assessmentType];
+              const totalMarks = Object.values(marks).reduce((sum, mark) => sum + (Number(mark) || 0), 0);
+              Object.keys(marks).forEach(subject => subjects.add(subject));
+              results.push({
+                name: student.profile.name,
+                regNo,
+                totalMarks,
+                marks
+              });
+            }
+          });
+
+          if (results.length === 0) {
+            showMessage("resultsMessage", `No results found for ${displayClass} in ${assessmentLabel} for ${termSelect.replace('term', 'Term ')}.`, true);
+            resultsTable.innerHTML = "";
+            summaryDiv.innerHTML = "";
+            topPerformersDiv.style.display = "none";
+            document.getElementById("loadingScreen").classList.add("hidden");
+            return;
+          }
+
+          results.sort((a, b) => b.totalMarks - a.totalMarks);
+          const sortedSubjects = Array.from(subjects).sort();
+
+          let tableHTML = `
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Tot</th>
+                  ${sortedSubjects.map(subject => `
+                    <th>${abbreviateSubject(subject)}</th>
+                    <th>Rub</th>
+                    <th>Out</th>
+                  `).join('')}
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          let totalClassMarks = 0;
+          results.forEach((student, index) => {
+            totalClassMarks += student.totalMarks;
+            tableHTML += `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${student.name}</td>
+                <td>${student.totalMarks.toFixed(1)}</td>
+                ${sortedSubjects.map(subject => {
+                  const mark = student.marks[subject] || 0;
+                  const grade = getGradeDetails(mark);
+                  return `
+                    <td>${mark}</td>
+                    <td>${grade.rubric}</td>
+                    <td>${grade.outcome.toFixed(1)}</td>
+                  `;
+                }).join('')}
+              </tr>
+            `;
+          });
+
+          tableHTML += `
+              </tbody>
+            </table>
+          `;
+
+          const mean = totalClassMarks / results.length;
+          const average = mean.toFixed(1);
+          summaryDiv.innerHTML = `<i class="fas fa-chart-bar"></i>Class Mean: ${average} | Class Average: ${average} | Total Students: ${results.length}`;
+
+          let topHTML = '';
+          const topCount = Math.min(3, results.length);
+          for (let i = 0; i < topCount; i++) {
+            topHTML += `<li><i class="fas fa-trophy"></i>${results[i].name} - ${results[i].totalMarks.toFixed(1)}</li>`;
+          }
+          topPerformersDiv.querySelector('ul').innerHTML = topHTML;
+          topPerformersDiv.style.display = "block";
+
+          resultsTable.innerHTML = tableHTML;
+          pdfButton.disabled = false;
+          showMessage("resultsMessage", `Dear ${teacherName}, we found the results for ${displayClass} in ${assessmentLabel} for ${termSelect.replace('term', 'Term ')}.`, false);
+          document.getElementById("loadingScreen").classList.add("hidden");
+
+          window.currentResults = { results, sortedSubjects, className, assessmentType, termSelect, mean, average };
+        })
+        .catch(error => {
+          console.error("Load results error:", error);
+          showMessage("resultsMessage", `Failed to load results: ${error.message}`, true);
+          document.getElementById("loadingScreen").classList.add("hidden");
+        });
+    }
+
+    function generatePDF() {
+      if (!window.currentResults) {
+        showMessage("resultsMessage", "No results to generate PDF.", true);
+        return;
+      }
+
+      const { results, sortedSubjects, className, assessmentType, termSelect, mean, average } = window.currentResults;
+      const assessmentLabel = assessmentType === "cat" ? "CAT (Mid-Term)" : "End-Term Exam";
+      const displayClass = className.replace(/^(playgroup|preprimary|grade)/, match => ({
+        playgroup: "Playgroup",
+        preprimary: "Pre-Primary ",
+        grade: "Grade "
+      }[match])).replace(/(\d)$/, " $1");
+
+      const headers = ["Rank", "Name", "Tot"];
+      const subHeaders = sortedSubjects.reduce((acc, subject) => {
+        const abbrSubject = abbreviateSubject(subject);
+        return [...acc, abbrSubject, "Rub", "Out"];
+      }, []);
+
+      const fullHeaders = [...headers, ...subHeaders];
+
+      const data = results.map((student, index) => {
+        const row = [
+          index + 1,
+          student.name,
+          student.totalMarks.toFixed(1)
+        ];
+        sortedSubjects.forEach(subject => {
+          const mark = student.marks[subject] || 0;
+          const grade = getGradeDetails(mark);
+          row.push(mark, grade.rubric, grade.outcome.toFixed(1));
+        });
+        return row;
+      });
+
+      const gradingHeaders = ["Score Range", "Rubric", "Outcome"];
+      const gradingData = gradingTable.map(g => [
+        `${g.range[0]}–${g.range[1]}`,
+        g.rubric,
+        g.outcome.toFixed(1)
+      ]);
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape' });
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("MACS SCHOOLS EA – Class Results", 14, 20);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Class: ${displayClass} | Term: ${termSelect.replace('term', 'Term ')} | Assessment: ${assessmentLabel}`, 14, 30);
+      doc.text(`Date: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 14, 38);
+
+      doc.autoTable({
+        startY: 45,
+        head: [fullHeaders],
+        body: data,
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak', font: 'helvetica' },
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 8 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 8 },
+          ...sortedSubjects.reduce((acc, _, i) => ({
+            ...acc,
+            [3 + i * 3]: { cellWidth: 7 },
+            [4 + i * 3]: { cellWidth: 7 },
+            [5 + i * 3]: { cellWidth: 7 }
+          }), {})
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      const finalY = doc.lastAutoTable.finalY || 45;
+      doc.setFontSize(10);
+      doc.text(`Class Mean: ${average} | Class Average: ${average} | Total Students: ${results.length}`, 14, finalY + 10);
+
+      doc.setFontSize(10);
+      doc.text("___________________________", 14, finalY + 30);
+      doc.text("Mad Annah Moraa", 14, finalY + 38);
+      doc.text("Director of Studies", 14, finalY + 46);
+      doc.text("___________________________", 150, finalY + 30);
+      doc.text("Jared Moinani", 150, finalY + 38);
+      doc.text("Head Teacher", 150, finalY + 46);
+
+      doc.addPage();
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("MACS SCHOOLS – Results Grading Table", 14, 20);
+      doc.setFont("helvetica", "normal");
+
+      doc.autoTable({
+        startY: 30,
+        head: [gradingHeaders],
+        body: gradingData,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 3, font: 'helvetica' },
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 15 }, 2: { cellWidth: 15 } },
+        margin: { left: 14, right: 14 }
+      });
+
+      document.getElementById("loadingScreen").classList.remove("hidden");
+      try {
+        doc.save(`MACS_Schools_${className}_${termSelect}_${assessmentType}_Results_${new Date().toISOString().split("T")[0]}.pdf`);
+        showMessage("resultsMessage", "PDF file generated successfully!", false);
+      } catch (error) {
+        console.error("PDF generation error:", error);
+        showMessage("resultsMessage", `Failed to generate PDF: ${error.message}`, true);
+      } finally {
+        document.getElementById("loadingScreen").classList.add("hidden");
+      }
     }
 
     function logout() {
@@ -329,77 +821,7 @@
         localStorage.clear();
         window.location.href = "index.html";
       }).catch(error => {
-        showPopup("Logout failed: " + error.message, true);
-      });
-    }
-
-    function fetchStudents() {
-      const classSelect = document.getElementById("classSelect").value;
-      if (!classSelect) {
-        document.getElementById("resultsBody").innerHTML = "";
-        return;
-      }
-
-      db.ref("users/students").once("value", snapshot => {
-        const students = snapshot.val();
-        if (!students) {
-          showPopup("No students found.", true);
-          return;
-        }
-        fetchResults();
-      }).catch(error => {
-        showPopup("Error fetching students: " + error.message, true);
-      });
-    }
-
-    function fetchResults() {
-      const classSelect = document.getElementById("classSelect").value;
-      const termSelect = document.getElementById("termSelect").value;
-      const assessmentSelect = document.getElementById("assessmentSelect").value;
-
-      if (!classSelect || !termSelect || !assessmentSelect) {
-        document.getElementById("resultsBody").innerHTML = "";
-        return;
-      }
-
-      db.ref("users/students").once("value", snapshot => {
-        const students = snapshot.val();
-        if (!students) {
-          showPopup("No students found.", true);
-          return;
-        }
-
-        const resultsBody = document.getElementById("resultsBody");
-        resultsBody.innerHTML = "";
-        let hasResults = false;
-
-        Object.entries(students).forEach(([studentId, studentData]) => {
-          if (studentData.form === classSelect && studentData.academics && studentData.academics[termSelect] && studentData.academics[termSelect][assessmentSelect]) {
-            const marks = studentData.academics[termSelect][assessmentSelect];
-            const grades = studentData.academics[termSelect].grades || {};
-            const studentName = studentData.profile.name;
-
-            Object.entries(marks).forEach(([subject, score]) => {
-              const grade = grades[subject] ? grades[subject][assessmentSelect] : "N/A";
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${studentId}</td>
-                <td>${studentName}</td>
-                <td>${subject}</td>
-                <td>${score}</td>
-                <td>${grade}</td>
-              `;
-              resultsBody.appendChild(row);
-              hasResults = true;
-            });
-          }
-        });
-
-        if (!hasResults) {
-          showPopup("No results found for the selected criteria.", true);
-        }
-      }).catch(error => {
-        showPopup("Error fetching results: " + error.message, true);
+        showMessage("resultsMessage", `Logout failed: ${error.message}`, true);
       });
     }
   </script>
