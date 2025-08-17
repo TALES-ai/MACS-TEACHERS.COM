@@ -1,12 +1,50 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Portal - Results - MACS SCHOOLS EA</title>
+  <title>Teacher Portal - Guide - MACS SCHOOLS EA</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     body {
@@ -151,25 +189,36 @@
     .dropdown select:hover {
       border-color: #6b48ff;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
+    .dropdown-content {
+      display: none;
+      margin-top: 10px;
       padding: 10px;
+      background: #fff;
       border: 1px solid #ddd;
-      text-align: left;
+      border-radius: 5px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
-    th {
-      background: #6b48ff;
-      color: #fff;
+    .dropdown-content.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
-    tr:nth-child(even) {
-      background: #f9f9f9;
+    .dropdown-content p {
+      margin: 5px 0;
+      line-height: 1.5;
     }
-    tr:hover {
-      background: #f1f1f1;
+    .guide-section {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f5f7fa;
+      border-radius: 8px;
+      border-left: 4px solid #6b48ff;
+    }
+    .guide-section h2 {
+      color: #6b48ff;
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -186,64 +235,57 @@
         <p id="teacherName">Loading...</p>
       </div>
       <h2>Teacher Portal</h2>
-      <a href="guide.html"><i class="fas fa-info-circle"></i> Guide</a>
+      <a href="guide.html" class="active"><i class="fas fa-info-circle"></i> Guide</a>
       <a href="students.html"><i class="fas fa-users"></i> Students</a>
       <a href="add-student.html"><i class="fas fa-user-plus"></i> Add Student</a>
       <a href="marks.html"><i class="fas fa-chart-line"></i> Upload Marks</a>
       <a href="announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a>
-      <a href="results.html" class="active"><i class="fas fa-file-alt"></i> Results</a>
+      <a href="results.html"><i class="fas fa-file-alt"></i> Results</a>
       <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
     </div>
     <div class="main-content">
-      <div id="results" class="section">
-        <h1><i class="fas fa-file-alt"></i> Student Results</h1>
-        <div class="dropdown">
-          <select id="classSelect" onchange="fetchStudents()">
-            <option value="">Select Class</option>
-            <option value="playgroup">Playgroup</option>
-            <option value="preprimary1">Pre-Primary 1</option>
-            <option value="grade1">Grade 1</option>
-            <option value="grade2">Grade 2</option>
-            <option value="grade3">Grade 3</option>
-            <option value="grade4">Grade 4</option>
-            <option value="grade5">Grade 5</option>
-            <option value="grade6">Grade 6</option>
-            <option value="grade7">Grade 7</option>
-            <option value="grade8">Grade 8</option>
-            <option value="grade9">Grade 9</option>
-          </select>
+      <div id="guide" class="section">
+        <h1><i class="fas fa-info-circle"></i> Teacher Guide</h1>
+        <div class="guide-section">
+          <h2>Welcome to the Teacher Portal!</h2>
+          <p>This section provides helpful guidance on using the portal. Select a topic below to learn more.</p>
+          <div class="dropdown">
+            <select onchange="toggleDropdown(this)">
+              <option value="">Select a Topic</option>
+              <option value="addStudent">How to Add a Student?</option>
+              <option value="uploadMarks">How to Upload Marks?</option>
+              <option value="addAnnouncement">How to Add an Announcement?</option>
+            </select>
+            <div id="addStudentContent" class="dropdown-content">
+              <p><strong>Steps to Add a Student:</strong></p>
+              <p>1. Navigate to the 'Add Student' section from the sidebar.</p>
+              <p>2. Fill in all required fields under Personal, Contact, Parental, Residence, and Financial Information.</p>
+              <p>3. Click the 'Add Student' button to save the data to the system.</p>
+              <p><em>Tip:</em> Ensure the Reg No is unique and follows the format (e.g., AID/00119/025).</p>
+            </div>
+            <div id="uploadMarksContent" class="dropdown-content">
+              <p><strong>Steps to Upload Marks:</strong></p>
+              <p>1. Go to the 'Upload Marks' section from the sidebar.</p>
+              <p>2. Select the class, subject, and term from the dropdowns.</p>
+              <p>3. Enter CAT (if applicable), Exam marks, and grades for each student in the table.</p>
+              <p>4. Click 'Save Marks' to submit.</p>
+              <p><em>Tip:</em> Grades should be in A-F format with optional + or - (e.g., A+, B-).</p>
+            </div>
+            <div id="addAnnouncementContent" class="dropdown-content">
+              <p><strong>Steps to Add an Announcement:</strong></p>
+              <p>1. Navigate to the 'Announcements' section from the sidebar.</p>
+              <p>2. Choose 'General' or 'Individual' announcement type.</p>
+              <p>3. For individual announcements, select a student; then enter a title and message.</p>
+              <p>4. Click 'Add Announcement' to publish.</p>
+              <p><em>Tip:</em> Use clear titles to make announcements easy to find.</p>
+            </div>
+          </div>
         </div>
-        <div class="dropdown">
-          <select id="termSelect" onchange="fetchResults()">
-            <option value="">Select Term</option>
-            <option value="term1">Term 1</option>
-            <option value="term2">Term 2</option>
-            <option value="term3">Term 3</option>
-          </select>
-        </div>
-        <div class="dropdown">
-          <select id="assessmentSelect" onchange="fetchResults()">
-            <option value="">Select Assessment Type</option>
-            <option value="cat">CAT</option>
-            <option value="exam">Exam</option>
-          </select>
-        </div>
-        <table id="resultsTable">
-          <thead>
-            <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-              <th>Subject</th>
-              <th>Marks</th>
-              <th>Grade</th>
-            </tr>
-          </thead>
-          <tbody id="resultsBody"></tbody>
-        </table>
       </div>
     </div>
   </div>
 
+  <script src="common.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
@@ -257,7 +299,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.database();
 
     auth.onAuthStateChanged(user => {
       if (!user || localStorage.getItem("userType") !== "teacher") {
@@ -267,100 +308,14 @@
         const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
         document.getElementById("teacherName").textContent = teacherName;
         document.getElementById("loadingScreen").classList.add("hidden");
-        fetchStudents();
       }
     });
 
-    function showPopup(message, isError = false) {
-      const popup = document.getElementById("popupMessage");
-      popup.textContent = message;
-      popup.className = `popup ${isError ? 'error-message' : 'success-message'}`;
-      popup.style.display = "block";
-      document.getElementById("popupOverlay").style.display = "block";
-      setTimeout(hidePopup, 3000);
-    }
-
-    function hidePopup() {
-      document.getElementById("popupMessage").style.display = "none";
-      document.getElementById("popupOverlay").style.display = "none";
-    }
-
-    function logout() {
-      auth.signOut().then(() => {
-        localStorage.clear();
-        window.location.href = "index.html";
-      }).catch(error => {
-        showPopup("Logout failed: " + error.message, true);
-      });
-    }
-
-    function fetchStudents() {
-      const classSelect = document.getElementById("classSelect").value;
-      if (!classSelect) {
-        document.getElementById("resultsBody").innerHTML = "";
-        return;
-      }
-
-      db.ref("users/students").once("value", snapshot => {
-        const students = snapshot.val();
-        if (!students) {
-          showPopup("No students found.", true);
-          return;
-        }
-        fetchResults();
-      }).catch(error => {
-        showPopup("Error fetching students: " + error.message, true);
-      });
-    }
-
-    function fetchResults() {
-      const classSelect = document.getElementById("classSelect").value;
-      const termSelect = document.getElementById("termSelect").value;
-      const assessmentSelect = document.getElementById("assessmentSelect").value;
-
-      if (!classSelect || !termSelect || !assessmentSelect) {
-        document.getElementById("resultsBody").innerHTML = "";
-        return;
-      }
-
-      db.ref("users/students").once("value", snapshot => {
-        const students = snapshot.val();
-        if (!students) {
-          showPopup("No students found.", true);
-          return;
-        }
-
-        const resultsBody = document.getElementById("resultsBody");
-        resultsBody.innerHTML = "";
-        let hasResults = false;
-
-        Object.entries(students).forEach(([studentId, studentData]) => {
-          if (studentData.form === classSelect && studentData.academics && studentData.academics[termSelect] && studentData.academics[termSelect][assessmentSelect]) {
-            const marks = studentData.academics[termSelect][assessmentSelect];
-            const grades = studentData.academics[termSelect].grades || {};
-            const studentName = studentData.profile.name;
-
-            Object.entries(marks).forEach(([subject, score]) => {
-              const grade = grades[subject] ? grades[subject][assessmentSelect] : "N/A";
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${studentId}</td>
-                <td>${studentName}</td>
-                <td>${subject}</td>
-                <td>${score}</td>
-                <td>${grade}</td>
-              `;
-              resultsBody.appendChild(row);
-              hasResults = true;
-            });
-          }
-        });
-
-        if (!hasResults) {
-          showPopup("No results found for the selected criteria.", true);
-        }
-      }).catch(error => {
-        showPopup("Error fetching results: " + error.message, true);
+    function toggleDropdown(select) {
+      const value = select.value;
+      document.querySelectorAll(".dropdown-content").forEach(content => {
+        content.classList.remove("show");
+        if (content.id === `${value}Content`) content.classList.add("show");
       });
     }
   </script>
