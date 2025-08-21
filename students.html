@@ -316,6 +316,10 @@
         <input type="email" id="editEmail">
       </div>
       <div>
+        <label for="editPassword">New Password (leave blank to keep current)</label>
+        <input type="password" id="editPassword">
+      </div>
+      <div>
         <label for="editEmergencyContact">Emergency Contact</label>
         <input type="text" id="editEmergencyContact">
       </div>
@@ -628,6 +632,7 @@
         document.getElementById("editTown").value = student.profile?.town || "";
         document.getElementById("editSponsor").value = student.fees?.sponsor || "";
         document.getElementById("editTotalExpected").value = student.fees?.totalExpected || "";
+        document.getElementById("editPassword").value = ""; // Leave blank for security
 
         document.getElementById("popupOverlay").style.display = "block";
         document.getElementById("editStudentPopup").style.display = "block";
@@ -643,7 +648,8 @@
       console.log("Saving student data");
       document.getElementById("loadingScreen").classList.remove("hidden");
       try {
-        const normalizedRegNo = document.getElementById("editRegNo").value.replace(/\//g, "_");
+        const regNo = document.getElementById("editRegNo").value;
+        const normalizedRegNo = regNo.replace(/\//g, "_");
         const name = document.getElementById("editName").value.trim();
         const gender = document.getElementById("editGender").value;
         const religion = document.getElementById("editReligion").value.trim();
@@ -651,6 +657,7 @@
         const stream = document.getElementById("editStream").value.trim();
         const phone = document.getElementById("editPhone").value.trim();
         const email = document.getElementById("editEmail").value.trim();
+        const password = document.getElementById("editPassword").value.trim();
         const emergencyContact = document.getElementById("editEmergencyContact").value.trim();
         const parentName = document.getElementById("editParentName").value.trim();
         const parentPhone = document.getElementById("editParentPhone").value.trim();
@@ -686,33 +693,32 @@
           return;
         }
 
-        const studentData = {
-          profile: {
-            name,
-            gender,
-            religion: religion || null,
-            phone: phone || null,
-            email: email || null,
-            emergencyContact: emergencyContact || null,
-            parentName: parentName || null,
-            parentPhone: parentPhone || null,
-            parentEmail: parentEmail || null,
-            parentOccupation: parentOccupation || null,
-            parentMaritalStatus: parentMaritalStatus || null,
-            guardianRelationship: guardianRelationship || null,
-            county: county || null,
-            address: address || null,
-            town: town || null
-          },
-          form,
-          stream,
-          fees: {
-            sponsor: sponsor || null,
-            totalExpected
-          }
-        };
+        const updates = {};
+        updates[`profile/name`] = name;
+        updates[`profile/gender`] = gender;
+        updates[`profile/religion`] = religion || null;
+        updates[`profile/phone`] = phone || null;
+        updates[`profile/email`] = email || null;
+        updates[`profile/emergencyContact`] = emergencyContact || null;
+        updates[`profile/parentName`] = parentName || null;
+        updates[`profile/parentPhone`] = parentPhone || null;
+        updates[`profile/parentEmail`] = parentEmail || null;
+        updates[`profile/parentOccupation`] = parentOccupation || null;
+        updates[`profile/parentMaritalStatus`] = parentMaritalStatus || null;
+        updates[`profile/guardianRelationship`] = guardianRelationship || null;
+        updates[`profile/county`] = county || null;
+        updates[`profile/address`] = address || null;
+        updates[`profile/town`] = town || null;
+        updates[`form`] = form;
+        updates[`stream`] = stream;
+        updates[`fees/sponsor`] = sponsor || null;
+        updates[`fees/totalExpected`] = totalExpected;
 
-        await db.ref(`users/students/${normalizedRegNo}`).update(studentData);
+        if (password) {
+          updates[`profile/password`] = password;
+        }
+
+        await db.ref(`users/students/${normalizedRegNo}`).update(updates);
         showPopup("Student data updated successfully!", false);
         hidePopup();
         loadStudents();
