@@ -374,49 +374,49 @@
               <tr>
                 <td>90 – 99</td>
                 <td>EE1</td>
-                <td>4.0</td>
+                <td>8.0</td>
                 <td>Exceeding Expectations 1</td>
               </tr>
               <tr>
                 <td>75 – 89</td>
                 <td>EE2</td>
-                <td>3.5</td>
+                <td>7.0</td>
                 <td>Exceeding Expectations 2</td>
               </tr>
               <tr>
                 <td>58 – 74</td>
                 <td>ME1</td>
-                <td>3.0</td>
+                <td>6.0</td>
                 <td>Meeting Expectations 1</td>
               </tr>
               <tr>
                 <td>41 – 57</td>
                 <td>ME2</td>
-                <td>2.5</td>
+                <td>5.0</td>
                 <td>Meeting Expectations 2</td>
               </tr>
               <tr>
                 <td>31 – 40</td>
                 <td>AE1</td>
-                <td>2.0</td>
+                <td>4.0</td>
                 <td>Approaching Expectations 1</td>
               </tr>
               <tr>
                 <td>21 – 30</td>
                 <td>AE2</td>
-                <td>1.5</td>
+                <td>3.0</td>
                 <td>Approaching Expectations 2</td>
               </tr>
               <tr>
                 <td>11 – 20</td>
                 <td>BE1</td>
-                <td>1.0</td>
+                <td>2.0</td>
                 <td>Below Expectations 1</td>
               </tr>
               <tr>
                 <td>1 – 10</td>
                 <td>BE2</td>
-                <td>0.5</td>
+                <td>1.0</td>
                 <td>Below Expectations 2</td>
               </tr>
             </tbody>
@@ -561,14 +561,14 @@
     };
 
     const gradingRubric = [
-      { range: [90, 99], grade: "EE1", outcome: 4.0, comment: "Exceeding Expectations 1" },
-      { range: [75, 89], grade: "EE2", outcome: 3.5, comment: "Exceeding Expectations 2" },
-      { range: [58, 74], grade: "ME1", outcome: 3.0, comment: "Meeting Expectations 1" },
-      { range: [41, 57], grade: "ME2", outcome: 2.5, comment: "Meeting Expectations 2" },
-      { range: [31, 40], grade: "AE1", outcome: 2.0, comment: "Approaching Expectations 1" },
-      { range: [21, 30], grade: "AE2", outcome: 1.5, comment: "Approaching Expectations 2" },
-      { range: [11, 20], grade: "BE1", outcome: 1.0, comment: "Below Expectations 1" },
-      { range: [1, 10], grade: "BE2", outcome: 0.5, comment: "Below Expectations 2" },
+      { range: [90, 99], grade: "EE1", outcome: 8.0, comment: "Exceeding Expectations 1" },
+      { range: [75, 89], grade: "EE2", outcome: 7.0, comment: "Exceeding Expectations 2" },
+      { range: [58, 74], grade: "ME1", outcome: 6.0, comment: "Meeting Expectations 1" },
+      { range: [41, 57], grade: "ME2", outcome: 5.0, comment: "Meeting Expectations 2" },
+      { range: [31, 40], grade: "AE1", outcome: 4.0, comment: "Approaching Expectations 1" },
+      { range: [21, 30], grade: "AE2", outcome: 3.0, comment: "Approaching Expectations 2" },
+      { range: [11, 20], grade: "BE1", outcome: 2.0, comment: "Below Expectations 1" },
+      { range: [1, 10], grade: "BE2", outcome: 1.0, comment: "Below Expectations 2" },
       { range: [0, 0], grade: "", outcome: 0, comment: "" }
     ];
 
@@ -655,7 +655,8 @@
               <th>Reg No</th>
               <th>Name</th>
               <th>Stream</th>
-              ${term !== "term3" ? '<th>Mid Term</th><th>Mid Term Grade</th>' : ''}
+              <th>CAT</th>
+              <th>CAT Grade</th>
               <th>Exam</th>
               <th>Exam Grade</th>
             </tr>
@@ -675,10 +676,8 @@
             <td>${student.regNo}</td>
             <td>${student.name}</td>
             <td>${student.stream}</td>
-            ${term !== "term3" ? `
-              <td><input type="number" id="cat_${normalizedRegNo}" value="${cat}" min="0" max="100" placeholder="Mid Term" oninput="updateGrade('${normalizedRegNo}')"></td>
-              <td><input type="text" id="catGrade_${normalizedRegNo}" value="${catGrade}" readonly></td>
-            ` : ''}
+            <td><input type="number" id="cat_${normalizedRegNo}" value="${cat}" min="0" max="100" placeholder="CAT" oninput="updateGrade('${normalizedRegNo}')"></td>
+            <td><input type="text" id="catGrade_${normalizedRegNo}" value="${catGrade}" readonly></td>
             <td><input type="number" id="exam_${normalizedRegNo}" value="${exam}" min="0" max="100" placeholder="Exam" oninput="updateGrade('${normalizedRegNo}')"></td>
             <td><input type="text" id="examGrade_${normalizedRegNo}" value="${examGrade}" readonly></td>
           </tr>`;
@@ -695,14 +694,13 @@
     }
 
     function updateGrade(normalizedRegNo) {
-      const term = document.getElementById("termSelect").value;
-      const catInput = term !== "term3" ? document.getElementById(`cat_${normalizedRegNo}`) : null;
+      const catInput = document.getElementById(`cat_${normalizedRegNo}`);
       const examInput = document.getElementById(`exam_${normalizedRegNo}`);
-      const catGradeInput = term !== "term3" ? document.getElementById(`catGrade_${normalizedRegNo}`) : null;
+      const catGradeInput = document.getElementById(`catGrade_${normalizedRegNo}`);
       const examGradeInput = document.getElementById(`examGrade_${normalizedRegNo}`);
-      const cat = catInput ? parseInt(catInput.value) || 0 : 0;
+      const cat = parseInt(catInput.value) || 0;
       const exam = parseInt(examInput.value) || 0;
-      if (catGradeInput) catGradeInput.value = getGrade(cat);
+      catGradeInput.value = getGrade(cat);
       examGradeInput.value = getGrade(exam);
     }
 
@@ -732,9 +730,9 @@
 
         for (const student of studentsList) {
           const normalizedRegNo = student.regNo.replace(/\//g, "_");
-          const catInput = term !== "term3" ? document.getElementById(`cat_${normalizedRegNo}`)?.value : null;
+          const catInput = document.getElementById(`cat_${normalizedRegNo}`)?.value;
           const examInput = document.getElementById(`exam_${normalizedRegNo}`)?.value;
-          const catGradeInput = term !== "term3" ? document.getElementById(`catGrade_${normalizedRegNo}`)?.value : null;
+          const catGradeInput = document.getElementById(`catGrade_${normalizedRegNo}`)?.value;
           const examGradeInput = document.getElementById(`examGrade_${normalizedRegNo}`)?.value;
 
           const existingMarks = student.academics[term] || { cat: {}, exam: {}, grades: {} };
@@ -744,7 +742,7 @@
             grades: { ...existingMarks.grades }
           };
 
-          if (catInput && term !== "term3") {
+          if (catInput) {
             const catValue = parseInt(catInput);
             if (catValue >= 0 && catValue <= 100) {
               studentMarks.cat[subject] = catValue;
@@ -752,7 +750,7 @@
               studentMarks.grades[subject].cat = catGradeInput || "";
               hasValidInput = true;
             } else if (catInput !== "") {
-              showMessage("marksMessage", `Invalid Mid Term mark for ${student.name} in ${subject}. Must be 0-100.`, true);
+              showMessage("marksMessage", `Invalid CAT mark for ${student.name} in ${subject}. Must be 0-100.`, true);
               return;
             } else {
               delete studentMarks.cat[subject];
