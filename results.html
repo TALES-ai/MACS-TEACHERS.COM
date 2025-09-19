@@ -352,6 +352,42 @@
     .top-performers li:nth-child(3) i {
       color: #cd7f32;
     }
+    .subject-performance {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.5s ease-in;
+    }
+    .subject-performance h3 {
+      font-size: 24px;
+      color: #4f46e5;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+    .subject-performance h3 i {
+      margin-right: 10px;
+      color: #f43f5e;
+    }
+    .subject-performance table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .subject-performance th, .subject-performance td {
+      border: 1px solid #d1d5db;
+      padding: 10px;
+      text-align: left;
+    }
+    .subject-performance th {
+      background: #dbeafe;
+      font-weight: 600;
+    }
+    .subject-performance tr:nth-child(even) {
+      background: #f9f9f9;
+    }
     @media (max-width: 768px) {
       .sidebar {
         width: 220px;
@@ -443,6 +479,10 @@
           <h3><i class="fas fa-trophy"></i> Top Performers</h3>
           <ul></ul>
         </div>
+        <div id="subjectPerformance" class="subject-performance" style="display: none;">
+          <h3><i class="fas fa-chart-bar"></i> Subject Performance Summary</h3>
+          <table id="subjectPerformanceTable"></table>
+        </div>
         <div class="results-table-container" id="resultsTable"></div>
         <div id="summary" class="summary"></div>
       </div>
@@ -465,15 +505,15 @@
     const db = firebase.database();
 
     const gradingTable = [
-      { range: [90, 99], rubric: "E.E 1", outcome: 4.0 },
-      { range: [75, 89], rubric: "E.E 2", outcome: 3.5 },
-      { range: [58, 74], rubric: "M.E 1", outcome: 3.0 },
-      { range: [41, 57], rubric: "M.E 2", outcome: 2.5 },
-      { range: [31, 40], rubric: "A.E 1", outcome: 2.0 },
-      { range: [21, 30], rubric: "A.E 2", outcome: 1.5 },
-      { range: [11, 20], rubric: "B.E 1", outcome: 1.0 },
-      { range: [1, 10], rubric: "B.E 2", outcome: 0.5 },
-      { range: [0, 0], rubric: "B.E 2", outcome: 0.5 }
+      { range: [90, 99], rubric: "E.E 1", outcome: 8.0 },
+      { range: [75, 89], rubric: "E.E 2", outcome: 7.0 },
+      { range: [58, 74], rubric: "M.E 1", outcome: 6.0 },
+      { range: [41, 57], rubric: "M.E 2", outcome: 5.0 },
+      { range: [31, 40], rubric: "A.E 1", outcome: 4.0 },
+      { range: [21, 30], rubric: "A.E 2", outcome: 3.0 },
+      { range: [11, 20], rubric: "B.E 1", outcome: 2.0 },
+      { range: [1, 10], rubric: "B.E 2", outcome: 1.0 },
+      { range: [0, 0], rubric: "", outcome: 0 }
     ];
 
     function updateTimestamp() {
@@ -554,15 +594,18 @@
 
     function abbreviateSubject(subject) {
       const subjectMap = {
-        "Mathematics": "Math",
+        "Mathematics Activities": "Math",
         "Agriculture": "Agric",
-        "English": "Eng",
-        "Kiswahili": "Kisw",
-        "Science": "Sci",
+        "English Activities": "Eng",
+        "Kiswahili Activities": "Kisw",
+        "Integrated Science": "Sci",
         "Social Studies": "Soc",
         "Creative Arts": "Crea",
-        "Religious Education": "Rel",
-        "Physical Education": "P.E"
+        "CRE": "Rel",
+        "Pre-Technical Studies": "Tech",
+        "Language Activities": "Lang",
+        "Environmental Activities": "Env",
+        "Literacy Activities": "Lit"
       };
       return subjectMap[subject] || subject.slice(0, 4);
     }
@@ -575,6 +618,8 @@
       const pdfButton = document.getElementById("pdfButton");
       const summaryDiv = document.getElementById("summary");
       const topPerformersDiv = document.getElementById("topPerformers");
+      const subjectPerformanceDiv = document.getElementById("subjectPerformance");
+      const subjectPerformanceTable = document.getElementById("subjectPerformanceTable");
       const teacherName = document.getElementById("teacherName").textContent;
 
       if (!termSelect || !assessmentType || !className) {
@@ -582,6 +627,7 @@
         resultsTable.innerHTML = "";
         summaryDiv.innerHTML = "";
         topPerformersDiv.style.display = "none";
+        subjectPerformanceDiv.style.display = "none";
         pdfButton.disabled = true;
         return;
       }
@@ -597,6 +643,7 @@
       resultsTable.innerHTML = "";
       summaryDiv.innerHTML = "";
       topPerformersDiv.style.display = "none";
+      subjectPerformanceDiv.style.display = "none";
       pdfButton.disabled = true;
 
       db.ref("users/students").once("value")
@@ -604,12 +651,18 @@
           const students = snapshot.val() || {};
           const results = [];
           const subjects = new Set();
+          const subjectTotals = {};
+          const subjectCounts = {};
 
           Object.entries(students).forEach(([regNo, student]) => {
             if (student.form === className && student.academics && student.academics[termSelect] && student.academics[termSelect][assessmentType]) {
               const marks = student.academics[termSelect][assessmentType];
               const totalMarks = Object.values(marks).reduce((sum, mark) => sum + (Number(mark) || 0), 0);
-              Object.keys(marks).forEach(subject => subjects.add(subject));
+              Object.keys(marks).forEach(subject => {
+                subjects.add(subject);
+                subjectTotals[subject] = (subjectTotals[subject] || 0) + (Number(marks[subject]) || 0);
+                subjectCounts[subject] = (subjectCounts[subject] || 0) + (marks[subject] !== '' ? 1 : 0);
+              });
               results.push({
                 name: student.profile.name,
                 regNo,
@@ -624,6 +677,7 @@
             resultsTable.innerHTML = "";
             summaryDiv.innerHTML = "";
             topPerformersDiv.style.display = "none";
+            subjectPerformanceDiv.style.display = "none";
             document.getElementById("loadingScreen").classList.add("hidden");
             return;
           }
@@ -669,9 +723,34 @@
             `;
           });
 
+          const subjectSummary = sortedSubjects.map(subject => {
+            const total = subjectTotals[subject] || 0;
+            const count = subjectCounts[subject] || 1;
+            const mean = (total / count).toFixed(1);
+            return { subject, total, mean: parseFloat(mean) };
+          }).sort((a, b) => b.mean - a.mean);
+
           tableHTML += `
-              </tbody>
-            </table>
+              <tr>
+                <td colspan="2">Subject Total</td>
+                <td>${totalClassMarks.toFixed(1)}</td>
+                ${sortedSubjects.map(subject => {
+                  const total = subjectTotals[subject] || 0;
+                  return `<td>${total.toFixed(1)}</td><td></td><td></td>`;
+                }).join('')}
+              </tr>
+              <tr>
+                <td colspan="2">Subject Mean</td>
+                <td>${(totalClassMarks / results.length).toFixed(1)}</td>
+                ${sortedSubjects.map(subject => {
+                  const total = subjectTotals[subject] || 0;
+                  const count = subjectCounts[subject] || 1;
+                  const mean = (total / count).toFixed(1);
+                  return `<td>${mean}</td><td></td><td></td>`;
+                }).join('')}
+              </tr>
+            </tbody>
+          </table>
           `;
 
           const mean = totalClassMarks / results.length;
@@ -686,12 +765,37 @@
           topPerformersDiv.querySelector('ul').innerHTML = topHTML;
           topPerformersDiv.style.display = "block";
 
+          let subjectPerformanceHTML = `
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Subject</th>
+                <th>Total Marks</th>
+                <th>Mean Score</th>
+              </tr>
+            </thead>
+            <tbody>
+          `;
+          subjectSummary.forEach((sub, index) => {
+            subjectPerformanceHTML += `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${sub.subject}</td>
+                <td>${sub.total.toFixed(1)}</td>
+                <td>${sub.mean.toFixed(1)}</td>
+              </tr>
+            `;
+          });
+          subjectPerformanceHTML += `</tbody>`;
+          subjectPerformanceTable.innerHTML = subjectPerformanceHTML;
+          subjectPerformanceDiv.style.display = "block";
+
           resultsTable.innerHTML = tableHTML;
           pdfButton.disabled = false;
           showMessage("resultsMessage", `Dear ${teacherName}, we found the results for ${displayClass} in ${assessmentLabel} for ${termSelect.replace('term', 'Term ')}.`, false);
           document.getElementById("loadingScreen").classList.add("hidden");
 
-          window.currentResults = { results, sortedSubjects, className, assessmentType, termSelect, mean, average };
+          window.currentResults = { results, sortedSubjects, className, assessmentType, termSelect, mean, average, subjectSummary };
         })
         .catch(error => {
           console.error("Load results error:", error);
@@ -706,7 +810,7 @@
         return;
       }
 
-      const { results, sortedSubjects, className, assessmentType, termSelect, mean, average } = window.currentResults;
+      const { results, sortedSubjects, className, assessmentType, termSelect, mean, average, subjectSummary } = window.currentResults;
       const assessmentLabel = assessmentType === "cat" ? "CAT (Mid-Term)" : "End-Term Exam";
       const displayClass = className.replace(/^(playgroup|preprimary|grade)/, match => ({
         playgroup: "Playgroup",
@@ -736,11 +840,35 @@
         return row;
       });
 
+      const totalRow = ["", "Subject Total", results.reduce((sum, s) => sum + s.totalMarks, 0).toFixed(1)];
+      sortedSubjects.forEach(subject => {
+        const total = results.reduce((sum, s) => sum + (Number(s.marks[subject]) || 0), 0);
+        totalRow.push(total.toFixed(1), "", "");
+      });
+
+      const meanRow = ["", "Subject Mean", (results.reduce((sum, s) => sum + s.totalMarks, 0) / results.length).toFixed(1)];
+      sortedSubjects.forEach(subject => {
+        const total = results.reduce((sum, s) => sum + (Number(s.marks[subject]) || 0), 0);
+        const count = results.filter(s => s.marks[subject] !== '').length || 1;
+        const mean = (total / count).toFixed(1);
+        meanRow.push(mean, "", "");
+      });
+
+      data.push(totalRow, meanRow);
+
       const gradingHeaders = ["Score Range", "Rubric", "Outcome"];
       const gradingData = gradingTable.map(g => [
         `${g.range[0]}–${g.range[1]}`,
         g.rubric,
         g.outcome.toFixed(1)
+      ]);
+
+      const subjectHeaders = ["Rank", "Subject", "Total Marks", "Mean Score"];
+      const subjectData = subjectSummary.map((sub, index) => [
+        index + 1,
+        sub.subject,
+        sub.total.toFixed(1),
+        sub.mean.toFixed(1)
       ]);
 
       const { jsPDF } = window.jspdf;
@@ -801,6 +929,23 @@
         styles: { fontSize: 9, cellPadding: 3, font: 'helvetica' },
         headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
         columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 15 }, 2: { cellWidth: 15 } },
+        margin: { left: 14, right: 14 }
+      });
+
+      const gradingFinalY = doc.lastAutoTable.finalY || 30;
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Subject Performance Summary", 14, gradingFinalY + 20);
+      doc.setFont("helvetica", "normal");
+
+      doc.autoTable({
+        startY: gradingFinalY + 30,
+        head: [subjectHeaders],
+        body: subjectData,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 3, font: 'helvetica' },
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 40 }, 2: { cellWidth: 20 }, 3: { cellWidth: 20 } },
         margin: { left: 14, right: 14 }
       });
 
