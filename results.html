@@ -474,6 +474,7 @@
         </div>
         <button onclick="loadResults()"><i class="fas fa-search"></i> Load Results</button>
         <button onclick="generatePDF()" disabled id="pdfButton"><i class="fas fa-file-pdf"></i> Generate PDF</button>
+        <button onclick="generateReportCardsPDF()" disabled id="reportCardsButton"><i class="fas fa-file-pdf"></i> Generate Report Cards</button>
         <div id="resultsMessage" class="error-message"></div>
         <div id="topPerformers" class="top-performers" style="display: none;">
           <h3><i class="fas fa-trophy"></i> Top Performers</h3>
@@ -515,6 +516,15 @@
       { range: [1, 10], rubric: "B.E 2", outcome: 1.0 },
       { range: [0, 0], rubric: "", outcome: 0 }
     ];
+
+    function getComment(mean) {
+      if (mean >= 90) return "Outstanding! Excellent work. Keep shining!";
+      else if (mean >= 75) return "Very Good. Well done. Maintain the momentum.";
+      else if (mean >= 58) return "Good. You're doing well. Aim higher!";
+      else if (mean >= 41) return "Fair. You can improve. Pull up your socks!";
+      else if (mean >= 31) return "Needs Improvement. Seek extra help. You can do better!";
+      else return "Poor performance. Immediate attention required. Let's work together.";
+    }
 
     function updateTimestamp() {
       const timestampElement = document.getElementById("currentTime");
@@ -616,6 +626,7 @@
       const className = document.getElementById("classSelect").value;
       const resultsTable = document.getElementById("resultsTable");
       const pdfButton = document.getElementById("pdfButton");
+      const reportCardsButton = document.getElementById("reportCardsButton");
       const summaryDiv = document.getElementById("summary");
       const topPerformersDiv = document.getElementById("topPerformers");
       const subjectPerformanceDiv = document.getElementById("subjectPerformance");
@@ -629,6 +640,7 @@
         topPerformersDiv.style.display = "none";
         subjectPerformanceDiv.style.display = "none";
         pdfButton.disabled = true;
+        reportCardsButton.disabled = true;
         return;
       }
 
@@ -645,6 +657,7 @@
       topPerformersDiv.style.display = "none";
       subjectPerformanceDiv.style.display = "none";
       pdfButton.disabled = true;
+      reportCardsButton.disabled = true;
 
       db.ref("users/students").once("value")
         .then(snapshot => {
@@ -689,9 +702,10 @@
             <table>
               <thead>
                 <tr>
-                  <th>Rank</th>
+                  <th>Position</th>
                   <th>Name</th>
-                  <th>Tot</th>
+                  <th>Reg No</th>
+                  <th>Total</th>
                   ${sortedSubjects.map(subject => `
                     <th>${abbreviateSubject(subject)}</th>
                     <th>Rub</th>
@@ -709,6 +723,7 @@
               <tr>
                 <td>${index + 1}</td>
                 <td>${student.name}</td>
+                <td>${student.regNo}</td>
                 <td>${student.totalMarks.toFixed(1)}</td>
                 ${sortedSubjects.map(subject => {
                   const mark = student.marks[subject] || 0;
@@ -732,7 +747,7 @@
 
           tableHTML += `
               <tr>
-                <td colspan="2">Subject Total</td>
+                <td colspan="3">Class Total</td>
                 <td>${totalClassMarks.toFixed(1)}</td>
                 ${sortedSubjects.map(subject => {
                   const total = subjectTotals[subject] || 0;
@@ -740,7 +755,7 @@
                 }).join('')}
               </tr>
               <tr>
-                <td colspan="2">Subject Mean</td>
+                <td colspan="3">Class Mean</td>
                 <td>${(totalClassMarks / results.length).toFixed(1)}</td>
                 ${sortedSubjects.map(subject => {
                   const total = subjectTotals[subject] || 0;
@@ -792,6 +807,7 @@
 
           resultsTable.innerHTML = tableHTML;
           pdfButton.disabled = false;
+          reportCardsButton.disabled = false;
           showMessage("resultsMessage", `Dear ${teacherName}, we found the results for ${displayClass} in ${assessmentLabel} for ${termSelect.replace('term', 'Term ')}.`, false);
           document.getElementById("loadingScreen").classList.add("hidden");
 
@@ -818,7 +834,7 @@
         grade: "Grade "
       }[match])).replace(/(\d)$/, " $1");
 
-      const headers = ["Rank", "Name", "Tot"];
+      const headers = ["Position", "Name", "Reg No", "Total"];
       const subHeaders = sortedSubjects.reduce((acc, subject) => {
         const abbrSubject = abbreviateSubject(subject);
         return [...acc, abbrSubject, "Rub", "Out"];
@@ -830,6 +846,7 @@
         const row = [
           index + 1,
           student.name,
+          student.regNo,
           student.totalMarks.toFixed(1)
         ];
         sortedSubjects.forEach(subject => {
@@ -840,13 +857,13 @@
         return row;
       });
 
-      const totalRow = ["", "Subject Total", results.reduce((sum, s) => sum + s.totalMarks, 0).toFixed(1)];
+      const totalRow = ["", "Class Total", "", results.reduce((sum, s) => sum + s.totalMarks, 0).toFixed(1)];
       sortedSubjects.forEach(subject => {
         const total = results.reduce((sum, s) => sum + (Number(s.marks[subject]) || 0), 0);
         totalRow.push(total.toFixed(1), "", "");
       });
 
-      const meanRow = ["", "Subject Mean", (results.reduce((sum, s) => sum + s.totalMarks, 0) / results.length).toFixed(1)];
+      const meanRow = ["", "Class Mean", "", (results.reduce((sum, s) => sum + s.totalMarks, 0) / results.length).toFixed(1)];
       sortedSubjects.forEach(subject => {
         const total = results.reduce((sum, s) => sum + (Number(s.marks[subject]) || 0), 0);
         const count = results.filter(s => s.marks[subject] !== '').length || 1;
@@ -874,80 +891,146 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape' });
 
-      doc.setFontSize(16);
+      // Enhanced Header Template
+      doc.setFillColor(79, 70, 229); // Purple color
+      doc.rect(0, 0, 297, 25, 'F'); // Full width header background
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text("MACS SCHOOLS EA – Class Results", 14, 20);
-      doc.setFontSize(12);
+      doc.text("MACS SCHOOLS EA", 148.5, 12, { align: 'center' });
+      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text(`Class: ${displayClass} | Term: ${termSelect.replace('term', 'Term ')} | Assessment: ${assessmentLabel}`, 14, 30);
-      doc.text(`Date: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 14, 38);
+      doc.text("Excellence in Education | P.O. Box 123, Nairobi, Kenya | Tel: +254 700 123 456 | Email: info@macsschools.co.ke", 148.5, 18, { align: 'center' });
+
+      // Subheader
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("CLASS RESULTS REPORT", 14, 35);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Class: ${displayClass} | Term: ${termSelect.replace('term', 'Term ')} | Assessment: ${assessmentLabel}`, 14, 42);
+      doc.text(`Generated on: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 14, 48);
+
+      // Decorative line
+      doc.setDrawColor(244, 63, 94); // Pink color
+      doc.setLineWidth(1);
+      doc.line(14, 52, 283, 52);
 
       doc.autoTable({
-        startY: 45,
+        startY: 55,
         head: [fullHeaders],
         body: data,
         theme: 'grid',
-        styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak', font: 'helvetica' },
-        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { 
+          fontSize: 7, 
+          cellPadding: 2, 
+          overflow: 'linebreak', 
+          font: 'helvetica',
+          lineColor: [200, 200, 200],
+          lineWidth: 0.5,
+          fillColor: [249, 250, 251] // Light gray for body
+        },
+        headStyles: { 
+          fillColor: [79, 70, 229], 
+          textColor: [255, 255, 255], 
+          fontStyle: 'bold',
+          lineColor: [79, 70, 229],
+          lineWidth: 1
+        },
+        alternateRowStyles: { fillColor: [240, 231, 254] }, // Light purple alternate
         columnStyles: {
-          0: { cellWidth: 8 },
+          0: { cellWidth: 10 },
           1: { cellWidth: 25 },
-          2: { cellWidth: 8 },
+          2: { cellWidth: 15 },
+          3: { cellWidth: 10 },
           ...sortedSubjects.reduce((acc, _, i) => ({
             ...acc,
-            [3 + i * 3]: { cellWidth: 7 },
-            [4 + i * 3]: { cellWidth: 7 },
-            [5 + i * 3]: { cellWidth: 7 }
+            [4 + i * 3]: { cellWidth: 8 },
+            [5 + i * 3]: { cellWidth: 8 },
+            [6 + i * 3]: { cellWidth: 8 }
           }), {})
         },
         margin: { left: 14, right: 14 }
       });
 
-      const finalY = doc.lastAutoTable.finalY || 45;
-      doc.setFontSize(10);
-      doc.text(`Class Mean: ${average} | Class Average: ${average} | Total Students: ${results.length}`, 14, finalY + 10);
+      const finalY = doc.lastAutoTable.finalY || 55;
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.text("SUMMARY", 14, finalY + 10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Class Mean: ${average} | Class Average: ${average} | Total Students: ${results.length}`, 14, finalY + 18);
 
-      doc.setFontSize(10);
-      doc.text("___________________________", 14, finalY + 30);
-      doc.text("Mad Annah Moraa", 14, finalY + 38);
-      doc.text("Director of Studies", 14, finalY + 46);
-      doc.text("___________________________", 150, finalY + 30);
-      doc.text("Jared Moinani", 150, finalY + 38);
-      doc.text("Head Teacher", 150, finalY + 46);
+      // Signatures Section
+      doc.setFontSize(8);
+      const sigY = finalY + 30;
+      doc.setDrawColor(244, 63, 94);
+      doc.line(14, sigY, 283, sigY);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Approved by:", 14, sigY + 5);
+      doc.text("___________________________", 14, sigY + 10);
+      doc.text("Mad Annah Moraa", 14, sigY + 15);
+      doc.text("Director of Studies", 14, sigY + 20);
+      doc.text("___________________________", 200, sigY + 10);
+      doc.text("Jared Moinani", 200, sigY + 15);
+      doc.text("Head Teacher", 200, sigY + 20);
 
       doc.addPage();
-      doc.setFontSize(16);
+      // Grading Table Page
+      doc.setFillColor(79, 70, 229);
+      doc.rect(0, 0, 297, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text("MACS SCHOOLS – Results Grading Table", 14, 20);
+      doc.text("GRADING SCALE & PERFORMANCE SUMMARY", 148.5, 12, { align: 'center' });
+      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
+      doc.text("MACS SCHOOLS EA | Excellence in Education", 148.5, 18, { align: 'center' });
+
+      doc.setTextColor(0, 0, 0);
+      doc.setDrawColor(244, 63, 94);
+      doc.setLineWidth(1);
+      doc.line(14, 30, 283, 30);
 
       doc.autoTable({
-        startY: 30,
+        startY: 35,
         head: [gradingHeaders],
         body: gradingData,
         theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 3, font: 'helvetica' },
+        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [200, 200, 200], lineWidth: 0.5 },
         headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
-        columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 15 }, 2: { cellWidth: 15 } },
+        alternateRowStyles: { fillColor: [240, 231, 254] },
+        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50 } },
         margin: { left: 14, right: 14 }
       });
 
-      const gradingFinalY = doc.lastAutoTable.finalY || 30;
-      doc.setFontSize(16);
+      const gradingFinalY = doc.lastAutoTable.finalY || 35;
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Subject Performance Summary", 14, gradingFinalY + 20);
+      doc.text("SUBJECT PERFORMANCE SUMMARY", 14, gradingFinalY + 15);
       doc.setFont("helvetica", "normal");
 
       doc.autoTable({
-        startY: gradingFinalY + 30,
+        startY: gradingFinalY + 25,
         head: [subjectHeaders],
         body: subjectData,
         theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 3, font: 'helvetica' },
-        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
-        columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 40 }, 2: { cellWidth: 20 }, 3: { cellWidth: 20 } },
+        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [200, 200, 200], lineWidth: 0.5 },
+        headStyles: { fillColor: [244, 63, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [251, 240, 247] }, // Light pink alternate
+        columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50 }, 3: { cellWidth: 50 } },
         margin: { left: 14, right: 14 }
       });
+
+      // Footer for all pages
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(`Page ${i} of ${pageCount} | Confidential - For Official Use Only`, 148.5, 290, { align: 'center' });
+      }
 
       document.getElementById("loadingScreen").classList.remove("hidden");
       try {
@@ -956,6 +1039,164 @@
       } catch (error) {
         console.error("PDF generation error:", error);
         showMessage("resultsMessage", `Failed to generate PDF: ${error.message}`, true);
+      } finally {
+        document.getElementById("loadingScreen").classList.add("hidden");
+      }
+    }
+
+    function generateReportCardsPDF() {
+      if (!window.currentResults) {
+        showMessage("resultsMessage", "No results to generate report cards.", true);
+        return;
+      }
+
+      const { results, sortedSubjects, className, assessmentType, termSelect } = window.currentResults;
+      const assessmentLabel = assessmentType === "cat" ? "CAT (Mid-Term)" : "End-Term Exam";
+      const displayClass = className.replace(/^(playgroup|preprimary|grade)/, match => ({
+        playgroup: "Playgroup",
+        preprimary: "Pre-Primary ",
+        grade: "Grade "
+      }[match])).replace(/(\d)$/, " $1");
+      const numSubjects = sortedSubjects.length;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'mm', 'a4');
+
+      document.getElementById("loadingScreen").classList.remove("hidden");
+
+      try {
+        results.forEach((student, index) => {
+          if (index > 0) {
+            doc.addPage();
+          }
+
+          // Enhanced Report Card Header Template
+          doc.setFillColor(79, 70, 229); // Purple header
+          doc.rect(0, 0, 210, 30, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(18);
+          doc.setFont("helvetica", "bold");
+          doc.text("MACS SCHOOLS EA", 105, 15, { align: 'center' });
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "normal");
+          doc.text("Excellence in Education | P.O. Box 123, Nairobi, Kenya", 105, 22, { align: 'center' });
+
+          // Decorative line
+          doc.setDrawColor(244, 63, 94); // Pink line
+          doc.setLineWidth(1.5);
+          doc.line(10, 32, 200, 32);
+
+          // Student Details - Balanced spacing
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "bold");
+          doc.text("STUDENT REPORT CARD", 105, 40, { align: 'center' });
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.text(`Student Name: ${student.name}`, 20, 50);
+          doc.text(`Registration No: ${student.regNo}`, 20, 57);
+          doc.text(`Class: ${displayClass}`, 20, 64);
+          doc.text(`Term: ${termSelect.replace('term', 'Term ')}`, 20, 71);
+          doc.text(`Assessment: ${assessmentLabel}`, 20, 78);
+          doc.text(`Date: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 20, 85);
+
+          // Marks Table - Adjusted startY for balance
+          const reportHeaders = ["Subject", "Mark (%)", "Rubric", "Outcome"];
+          const reportData = sortedSubjects.map(subject => {
+            const mark = student.marks[subject] || 0;
+            const grade = getGradeDetails(mark);
+            return [subject, mark.toString(), grade.rubric, grade.outcome.toFixed(1)];
+          });
+
+          doc.autoTable({
+            startY: 92,
+            head: [reportHeaders],
+            body: reportData,
+            theme: 'grid',
+            styles: { 
+              fontSize: 8, 
+              cellPadding: 3, 
+              overflow: 'linebreak', 
+              font: 'helvetica',
+              lineColor: [200, 200, 200],
+              lineWidth: 0.5,
+              fillColor: [255, 255, 255]
+            },
+            headStyles: { 
+              fillColor: [244, 63, 94], 
+              textColor: [255, 255, 255], 
+              fontStyle: 'bold',
+              lineColor: [244, 63, 94],
+              lineWidth: 1
+            },
+            alternateRowStyles: { fillColor: [251, 240, 247] }, // Light pink
+            columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 20 }, 2: { cellWidth: 30 }, 3: { cellWidth: 20 } },
+            margin: { left: 20, right: 20 }
+          });
+
+          const tableFinalY = doc.lastAutoTable.finalY || 92;
+
+          // Performance Summary - On white surface, no blue background, balanced spacing
+          const total = student.totalMarks.toFixed(1);
+          const mean = (student.totalMarks / numSubjects).toFixed(1);
+          const position = index + 1;
+          const comment = getComment(parseFloat(mean));
+
+          // Draw a light border for the summary box on white
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.5);
+          doc.rect(20, tableFinalY + 10, 170, 40);
+
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.text("PERFORMANCE SUMMARY", 30, tableFinalY + 20);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.text(`Total Marks: ${total}`, 30, tableFinalY + 28);
+          doc.text(`Mean Score: ${mean}%`, 30, tableFinalY + 35);
+          doc.text(`Position: ${position} out of ${results.length}`, 30, tableFinalY + 42);
+          doc.text(`Teacher's Comment:`, 30, tableFinalY + 49);
+          doc.text(comment, 30, tableFinalY + 56, { maxWidth: 150 });
+
+          // Signatures - Adjusted for better balance and spacing
+          const sigY = tableFinalY + 65;
+          doc.setDrawColor(244, 63, 94);
+          doc.setLineWidth(1);
+          doc.line(20, sigY, 90, sigY);
+          doc.line(120, sigY, 190, sigY);
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.text("Class Teacher's Signature:", 25, sigY + 8);
+          doc.text("___________________________", 25, sigY + 15);
+          doc.text("Parent/Guardian's Signature:", 125, sigY + 8);
+          doc.text("___________________________", 125, sigY + 15);
+
+          // Additional approvals below with more space
+          const approvalY = sigY + 35;
+          doc.setDrawColor(244, 63, 94);
+          doc.line(20, approvalY, 90, approvalY);
+          doc.line(120, approvalY, 190, approvalY);
+          doc.text("Director of Studies:", 25, approvalY + 8);
+          doc.text("Mad Annah Moraa", 25, approvalY + 15);
+          doc.text("___________________________", 25, approvalY + 22);
+          doc.text("Head Teacher:", 125, approvalY + 8);
+          doc.text("Jared Moinani", 125, approvalY + 15);
+          doc.text("___________________________", 125, approvalY + 22);
+
+          // Footer - Ensure it doesn't overlap
+          const footerY = Math.max(270, approvalY + 40);
+          doc.setTextColor(128, 128, 128);
+          doc.setFontSize(7);
+          doc.text("Confidential - MACS Schools EA | For Official Student Records Only", 105, footerY, { align: 'center' });
+        });
+
+        doc.save(`MACS_ReportCards_${className}_${termSelect}_${assessmentType}_${new Date().toISOString().split("T")[0]}.pdf`);
+        showMessage("resultsMessage", "Report Cards PDF generated successfully!", false);
+      } catch (error) {
+        console.error("Report Cards PDF generation error:", error);
+        showMessage("resultsMessage", `Failed to generate Report Cards PDF: ${error.message}`, true);
       } finally {
         document.getElementById("loadingScreen").classList.add("hidden");
       }
