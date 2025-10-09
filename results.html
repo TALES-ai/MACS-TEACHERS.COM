@@ -891,19 +891,16 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape' });
 
-      // Enhanced Header Template
-      doc.setFillColor(79, 70, 229); // Purple color
-      doc.rect(0, 0, 297, 25, 'F'); // Full width header background
-      doc.setTextColor(255, 255, 255);
+      // Enhanced Header Template - Black and White
+      doc.setTextColor(0, 0, 0);
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
       doc.text("MACS SCHOOLS EA", 148.5, 12, { align: 'center' });
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text("Excellence in Education | P.O. Box 123, Nairobi, Kenya | Tel: +254 700 123 456 | Email: info@macsschools.co.ke", 148.5, 18, { align: 'center' });
+      doc.text("Excellence in Education | P.O. Box 114-40503 Gesima | Tel: 0112750147 | Email: info@macsschools.co.ke", 148.5, 18, { align: 'center' });
 
       // Subheader
-      doc.setTextColor(0, 0, 0);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("CLASS RESULTS REPORT", 14, 35);
@@ -912,8 +909,8 @@
       doc.text(`Class: ${displayClass} | Term: ${termSelect.replace('term', 'Term ')} | Assessment: ${assessmentLabel}`, 14, 42);
       doc.text(`Generated on: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 14, 48);
 
-      // Decorative line
-      doc.setDrawColor(244, 63, 94); // Pink color
+      // Decorative line - Black
+      doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(1);
       doc.line(14, 52, 283, 52);
 
@@ -927,18 +924,18 @@
           cellPadding: 2, 
           overflow: 'linebreak', 
           font: 'helvetica',
-          lineColor: [200, 200, 200],
+          lineColor: [0, 0, 0],
           lineWidth: 0.5,
-          fillColor: [249, 250, 251] // Light gray for body
+          fillColor: [255, 255, 255]
         },
         headStyles: { 
-          fillColor: [79, 70, 229], 
+          fillColor: [0, 0, 0], 
           textColor: [255, 255, 255], 
           fontStyle: 'bold',
-          lineColor: [79, 70, 229],
+          lineColor: [0, 0, 0],
           lineWidth: 1
         },
-        alternateRowStyles: { fillColor: [240, 231, 254] }, // Light purple alternate
+        alternateRowStyles: { fillColor: [245, 245, 245] },
         columnStyles: {
           0: { cellWidth: 10 },
           1: { cellWidth: 25 },
@@ -965,7 +962,7 @@
       // Signatures Section
       doc.setFontSize(8);
       const sigY = finalY + 30;
-      doc.setDrawColor(244, 63, 94);
+      doc.setDrawColor(0, 0, 0);
       doc.line(14, sigY, 283, sigY);
       doc.setTextColor(0, 0, 0);
       doc.text("Approved by:", 14, sigY + 5);
@@ -978,9 +975,7 @@
 
       doc.addPage();
       // Grading Table Page
-      doc.setFillColor(79, 70, 229);
-      doc.rect(0, 0, 297, 25, 'F');
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(0, 0, 0);
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
       doc.text("GRADING SCALE & PERFORMANCE SUMMARY", 148.5, 12, { align: 'center' });
@@ -988,8 +983,7 @@
       doc.setFont("helvetica", "normal");
       doc.text("MACS SCHOOLS EA | Excellence in Education", 148.5, 18, { align: 'center' });
 
-      doc.setTextColor(0, 0, 0);
-      doc.setDrawColor(244, 63, 94);
+      doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(1);
       doc.line(14, 30, 283, 30);
 
@@ -998,9 +992,9 @@
         head: [gradingHeaders],
         body: gradingData,
         theme: 'grid',
-        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [200, 200, 200], lineWidth: 0.5 },
-        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [240, 231, 254] },
+        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [0, 0, 0], lineWidth: 0.5 },
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
         columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50 } },
         margin: { left: 14, right: 14 }
       });
@@ -1016,9 +1010,9 @@
         head: [subjectHeaders],
         body: subjectData,
         theme: 'grid',
-        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [200, 200, 200], lineWidth: 0.5 },
-        headStyles: { fillColor: [244, 63, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [251, 240, 247] }, // Light pink alternate
+        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [0, 0, 0], lineWidth: 0.5 },
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
         columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50 }, 3: { cellWidth: 50 } },
         margin: { left: 14, right: 14 }
       });
@@ -1070,24 +1064,21 @@
             doc.addPage();
           }
 
-          // Enhanced Report Card Header Template
-          doc.setFillColor(79, 70, 229); // Purple header
-          doc.rect(0, 0, 210, 30, 'F');
-          doc.setTextColor(255, 255, 255);
+          // Enhanced Report Card Header Template - Black and White
+          doc.setTextColor(0, 0, 0);
           doc.setFontSize(18);
           doc.setFont("helvetica", "bold");
           doc.text("MACS SCHOOLS EA", 105, 15, { align: 'center' });
           doc.setFontSize(10);
           doc.setFont("helvetica", "normal");
-          doc.text("Excellence in Education | P.O. Box 123, Nairobi, Kenya", 105, 22, { align: 'center' });
+          doc.text("GODLINESS + HARDWORK = SUCCESS | P.O. Box 114-40503 Gesima | Tel: 0112750147", 105, 22, { align: 'center' });
 
-          // Decorative line
-          doc.setDrawColor(244, 63, 94); // Pink line
+          // Decorative line - Black
+          doc.setDrawColor(0, 0, 0);
           doc.setLineWidth(1.5);
           doc.line(10, 32, 200, 32);
 
           // Student Details - Balanced spacing
-          doc.setTextColor(0, 0, 0);
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
           doc.text("STUDENT REPORT CARD", 105, 40, { align: 'center' });
@@ -1118,34 +1109,34 @@
               cellPadding: 3, 
               overflow: 'linebreak', 
               font: 'helvetica',
-              lineColor: [200, 200, 200],
+              lineColor: [0, 0, 0],
               lineWidth: 0.5,
               fillColor: [255, 255, 255]
             },
             headStyles: { 
-              fillColor: [244, 63, 94], 
+              fillColor: [0, 0, 0], 
               textColor: [255, 255, 255], 
               fontStyle: 'bold',
-              lineColor: [244, 63, 94],
+              lineColor: [0, 0, 0],
               lineWidth: 1
             },
-            alternateRowStyles: { fillColor: [251, 240, 247] }, // Light pink
+            alternateRowStyles: { fillColor: [245, 245, 245] },
             columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 20 }, 2: { cellWidth: 30 }, 3: { cellWidth: 20 } },
             margin: { left: 20, right: 20 }
           });
 
           const tableFinalY = doc.lastAutoTable.finalY || 92;
 
-          // Performance Summary - On white surface, no blue background, balanced spacing
+          // Performance Summary - On white surface, black border, balanced spacing
           const total = student.totalMarks.toFixed(1);
           const mean = (student.totalMarks / numSubjects).toFixed(1);
           const position = index + 1;
           const comment = getComment(parseFloat(mean));
 
-          // Draw a light border for the summary box on white
-          doc.setDrawColor(200, 200, 200);
+          // Draw a black border for the summary box
+          doc.setDrawColor(0, 0, 0);
           doc.setLineWidth(0.5);
-          doc.rect(20, tableFinalY + 10, 170, 40);
+          doc.rect(20, tableFinalY + 10, 170, 50);
 
           doc.setTextColor(0, 0, 0);
           doc.setFontSize(10);
@@ -1156,12 +1147,14 @@
           doc.text(`Total Marks: ${total}`, 30, tableFinalY + 28);
           doc.text(`Mean Score: ${mean}%`, 30, tableFinalY + 35);
           doc.text(`Position: ${position} out of ${results.length}`, 30, tableFinalY + 42);
-          doc.text(`Teacher's Comment:`, 30, tableFinalY + 49);
+          doc.setFont("helvetica", "bold");
+          doc.text("Teacher's Comment:", 30, tableFinalY + 49);
+          doc.setFont("helvetica", "normal");
           doc.text(comment, 30, tableFinalY + 56, { maxWidth: 150 });
 
           // Signatures - Adjusted for better balance and spacing
-          const sigY = tableFinalY + 65;
-          doc.setDrawColor(244, 63, 94);
+          const sigY = tableFinalY + 70;
+          doc.setDrawColor(0, 0, 0);
           doc.setLineWidth(1);
           doc.line(20, sigY, 90, sigY);
           doc.line(120, sigY, 190, sigY);
@@ -1175,9 +1168,10 @@
 
           // Additional approvals below with more space
           const approvalY = sigY + 35;
-          doc.setDrawColor(244, 63, 94);
+          doc.setDrawColor(0, 0, 0);
           doc.line(20, approvalY, 90, approvalY);
           doc.line(120, approvalY, 190, approvalY);
+          doc.setTextColor(0, 0, 0);
           doc.text("Director of Studies:", 25, approvalY + 8);
           doc.text("Mad Annah Moraa", 25, approvalY + 15);
           doc.text("___________________________", 25, approvalY + 22);
