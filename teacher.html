@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -192,13 +153,14 @@
     .dropdown-content {
       display: none;
       margin-top: 10px;
-      padding: 10px;
-      background: #fff;
+      padding: 15px;
+      background: #f9f9f9;
       border: 1px solid #ddd;
-      border-radius: 5px;
+      border-radius: 8px;
       opacity: 0;
       transform: translateY(-10px);
       transition: opacity 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
     .dropdown-content.show {
       display: block;
@@ -206,19 +168,48 @@
       transform: translateY(0);
     }
     .dropdown-content p {
-      margin: 5px 0;
-      line-height: 1.5;
+      margin: 10px 0;
+      line-height: 1.6;
+      color: #555;
+    }
+    .dropdown-content img {
+      max-width: 100%;
+      height: auto;
+      margin: 15px 0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     .guide-section {
       margin-top: 20px;
-      padding: 15px;
-      background: #f5f7fa;
-      border-radius: 8px;
-      border-left: 4px solid #6b48ff;
+      padding: 20px;
+      background: #f8f9fc;
+      border-radius: 12px;
+      border-left: 5px solid #6b48ff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
     .guide-section h2 {
       color: #6b48ff;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
+      font-size: 22px;
+    }
+    .greeting {
+      font-size: 26px;
+      color: #ff6f61;
+      margin-bottom: 20px;
+      font-weight: bold;
+      text-align: center;
+      animation: fadeIn 1s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .holiday-message {
+      font-size: 20px;
+      color: #ff4444;
+      margin-bottom: 15px;
+      text-align: center;
+      font-style: italic;
     }
   </style>
 </head>
@@ -246,15 +237,20 @@
     <div class="main-content">
       <div id="guide" class="section">
         <h1><i class="fas fa-info-circle"></i> Teacher Guide</h1>
+        <div id="greeting" class="greeting"></div>
+        <div id="holidayMessage" class="holiday-message"></div>
         <div class="guide-section">
           <h2>Welcome to the Teacher Portal!</h2>
-          <p>This section provides helpful guidance on using the portal. Select a topic below to learn more.</p>
+          <p>This section provides comprehensive guidance on using the portal features. Select a topic below to learn more.</p>
           <div class="dropdown">
             <select onchange="toggleDropdown(this)">
               <option value="">Select a Topic</option>
               <option value="addStudent">How to Add a Student?</option>
               <option value="uploadMarks">How to Upload Marks?</option>
               <option value="addAnnouncement">How to Add an Announcement?</option>
+              <option value="promoteStudents">How to Promote Students?</option>
+              <option value="cbcExplanation">What is CBC (Competency-Based Curriculum)?</option>
+              <option value="studentsPortal">Importance of the Students Portal</option>
             </select>
             <div id="addStudentContent" class="dropdown-content">
               <p><strong>Steps to Add a Student:</strong></p>
@@ -279,12 +275,45 @@
               <p>4. Click 'Add Announcement' to publish.</p>
               <p><em>Tip:</em> Use clear titles to make announcements easy to find.</p>
             </div>
+            <div id="promoteStudentsContent" class="dropdown-content">
+              <p><strong>Steps to Promote Students:</strong></p>
+              <p>1. Go to the 'Students' section from the sidebar.</p>
+              <p>2. Use the filters to select the current class and stream (if applicable).</p>
+              <p>3. In the 'Bulk Student Promotion' section, select the class to promote to from the dropdown.</p>
+              <p>4. Click 'Promote Students' and confirm the action.</p>
+              <p><em>Note:</em> Streams remain the same; only the class changes. This action affects all filtered students and cannot be undone.</p>
+            </div>
+            <div id="cbcExplanationContent" class="dropdown-content">
+              <p><strong>What is CBC (Competency-Based Curriculum)?</strong></p>
+              <p>The Competency-Based Curriculum (CBC) is an educational framework adopted in Kenya that focuses on developing learners' competencies and skills rather than rote memorization. It emphasizes practical learning, critical thinking, and real-world application.</p>
+              <p>Key features include:</p>
+              <ul>
+                <li>Learner-centered approach</li>
+                <li>Integration of values and life skills</li>
+                <li>Continuous assessment</li>
+                <li>Flexibility in learning pathways</li>
+              </ul>
+              <p>CBC aims to produce self-reliant individuals who can contribute to society effectively.</p>
+            </div>
+            <div id="studentsPortalContent" class="dropdown-content">
+              <p><strong>Importance of the Students Portal</strong></p>
+              <p>The Students Portal is a crucial tool for enhancing the learning experience and fostering communication between students, parents, and the school. It provides easy access to important information and resources.</p>
+              <p>Key benefits include:</p>
+              <ul>
+                <li><strong>Access to Academic Information:</strong> Students can view their marks, results, and progress reports anytime.</li>
+                <li><strong>Announcements and Updates:</strong> Receive timely school announcements, events, and important notices.</li>
+                <li><strong>Parental Involvement:</strong> Parents can monitor their child's performance and stay engaged in their education.</li>
+                <li><strong>Resource Sharing:</strong> Access learning materials, assignments, and study resources.</li>
+                <li><strong>Efficiency:</strong> Reduces paperwork and streamlines administrative processes.</li>
+              </ul>
+              <p>Overall, the portal promotes transparency, accountability, and a collaborative learning environment.</p>
+              <img src="https://adamosoft.com/wp-content/uploads/2024/08/student-learning-portal-1.png" alt="Student Learning Portal">
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-
   <script src="common.js"></script>
   <script>
     const firebaseConfig = {
@@ -296,10 +325,8 @@
       appId: "1:129785956666:web:541a08bee37c739556a803",
       databaseURL: "https://lifeflow-yhtl6-default-rtdb.firebaseio.com"
     };
-
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-
     auth.onAuthStateChanged(user => {
       if (!user || localStorage.getItem("userType") !== "teacher") {
         localStorage.clear();
@@ -308,9 +335,29 @@
         const teacherName = localStorage.getItem("teacherName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Teacher";
         document.getElementById("teacherName").textContent = teacherName;
         document.getElementById("loadingScreen").classList.add("hidden");
+        setGreeting(teacherName);
       }
     });
+    function setGreeting(name) {
+      const now = new Date();
+      const hour = now.getHours();
+      const month = now.getMonth() + 1; // 1-12
+      const day = now.getDate();
+      let greeting = '';
+      if (hour < 12) {
+        greeting = 'Good morning';
+      } else if (hour < 18) {
+        greeting = 'Good afternoon';
+      } else {
+        greeting = 'Good evening';
+      }
+      document.getElementById("greeting").textContent = `${greeting}, ${name}!`;
 
+      // Check for Christmas
+      if (month === 12 && day === 25) {
+        document.getElementById("holidayMessage").textContent = "Merry Christmas! 🎄";
+      }
+    }
     function toggleDropdown(select) {
       const value = select.value;
       document.querySelectorAll(".dropdown-content").forEach(content => {

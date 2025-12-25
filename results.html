@@ -140,11 +140,6 @@
       font-size: 15px;
       background: #fff;
       transition: all 0.3s ease;
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 16px;
     }
     .form-group select:focus {
       border-color: #4f46e5;
@@ -352,42 +347,6 @@
     .top-performers li:nth-child(3) i {
       color: #cd7f32;
     }
-    .subject-performance {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px 0;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      animation: fadeIn 0.5s ease-in;
-    }
-    .subject-performance h3 {
-      font-size: 24px;
-      color: #4f46e5;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-    }
-    .subject-performance h3 i {
-      margin-right: 10px;
-      color: #f43f5e;
-    }
-    .subject-performance table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    .subject-performance th, .subject-performance td {
-      border: 1px solid #d1d5db;
-      padding: 10px;
-      text-align: left;
-    }
-    .subject-performance th {
-      background: #dbeafe;
-      font-weight: 600;
-    }
-    .subject-performance tr:nth-child(even) {
-      background: #f9f9f9;
-    }
     @media (max-width: 768px) {
       .sidebar {
         width: 220px;
@@ -447,42 +406,27 @@
         <h1><i class="fas fa-file-alt"></i> Class Results</h1>
         <div class="timestamp" id="currentTime"></div>
         <div class="form-group">
-          <label for="termSelect">Term</label>
-          <i class="fas fa-calendar-alt"></i>
-          <select id="termSelect" onchange="loadResults()">
-            <option value="">Select Term</option>
-            <option value="term1">Term 1</option>
-            <option value="term2">Term 2</option>
-            <option value="term3">Term 3</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label for="assessmentType">Assessment Type</label>
           <i class="fas fa-list"></i>
-          <select id="assessmentType" onchange="loadResults()">
+          <select id="assessmentType">
             <option value="">Select Assessment</option>
             <option value="cat">CAT (Mid-Term)</option>
-            <option value="exam">End-Term Exam</option>
+            <option value="endterm">End-Term Exam</option>
           </select>
         </div>
         <div class="form-group">
           <label for="classSelect">Class</label>
           <i class="fas fa-school"></i>
-          <select id="classSelect" onchange="loadResults()">
+          <select id="classSelect">
             <option value="">Select Class</option>
           </select>
         </div>
         <button onclick="loadResults()"><i class="fas fa-search"></i> Load Results</button>
         <button onclick="generatePDF()" disabled id="pdfButton"><i class="fas fa-file-pdf"></i> Generate PDF</button>
-        <button onclick="generateReportCardsPDF()" disabled id="reportCardsButton"><i class="fas fa-file-pdf"></i> Generate Report Cards</button>
         <div id="resultsMessage" class="error-message"></div>
         <div id="topPerformers" class="top-performers" style="display: none;">
           <h3><i class="fas fa-trophy"></i> Top Performers</h3>
           <ul></ul>
-        </div>
-        <div id="subjectPerformance" class="subject-performance" style="display: none;">
-          <h3><i class="fas fa-chart-bar"></i> Subject Performance Summary</h3>
-          <table id="subjectPerformanceTable"></table>
         </div>
         <div class="results-table-container" id="resultsTable"></div>
         <div id="summary" class="summary"></div>
@@ -506,25 +450,16 @@
     const db = firebase.database();
 
     const gradingTable = [
-      { range: [90, 99], rubric: "E.E 1", outcome: 8.0 },
-      { range: [75, 89], rubric: "E.E 2", outcome: 7.0 },
-      { range: [58, 74], rubric: "M.E 1", outcome: 6.0 },
-      { range: [41, 57], rubric: "M.E 2", outcome: 5.0 },
-      { range: [31, 40], rubric: "A.E 1", outcome: 4.0 },
-      { range: [21, 30], rubric: "A.E 2", outcome: 3.0 },
-      { range: [11, 20], rubric: "B.E 1", outcome: 2.0 },
-      { range: [1, 10], rubric: "B.E 2", outcome: 1.0 },
-      { range: [0, 0], rubric: "", outcome: 0 }
+      { range: [90, 99], rubric: "E.E 1", outcome: 4.0 },
+      { range: [75, 89], rubric: "E.E 2", outcome: 3.5 },
+      { range: [58, 74], rubric: "M.E 1", outcome: 3.0 },
+      { range: [41, 57], rubric: "M.E 2", outcome: 2.5 },
+      { range: [31, 40], rubric: "A.E 1", outcome: 2.0 },
+      { range: [21, 30], rubric: "A.E 2", outcome: 1.5 },
+      { range: [11, 20], rubric: "B.E 1", outcome: 1.0 },
+      { range: [1, 10], rubric: "B.E 2", outcome: 0.5 },
+      { range: [0, 0], rubric: "B.E 2", outcome: 0.5 }
     ];
-
-    function getComment(mean) {
-      if (mean >= 90) return "Outstanding! Excellent work. Keep shining!";
-      else if (mean >= 75) return "Very Good. Well done. Maintain the momentum.";
-      else if (mean >= 58) return "Good. You're doing well. Aim higher!";
-      else if (mean >= 41) return "Fair. You can improve. Pull up your socks!";
-      else if (mean >= 31) return "Needs Improvement. Seek extra help. You can do better!";
-      else return "Poor performance. Immediate attention required. Let's work together.";
-    }
 
     function updateTimestamp() {
       const timestampElement = document.getElementById("currentTime");
@@ -577,15 +512,8 @@
               classes.add(student.form);
             }
           });
-          Array.from(classes).sort((a, b) => {
-            const order = ["playgroup", "preprimary1", "preprimary2", "grade1", "grade2", "grade3", "grade4", "grade5", "grade6", "grade7", "grade8", "grade9"];
-            return order.indexOf(a) - order.indexOf(b);
-          }).forEach(cls => {
-            const displayClass = cls.replace(/^(playgroup|preprimary|grade)/, match => ({
-              playgroup: "Playgroup",
-              preprimary: "Pre-Primary ",
-              grade: "Grade "
-            }[match])).replace(/(\d)$/, " $1");
+          Array.from(classes).sort().forEach(cls => {
+            const displayClass = cls.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1");
             classSelect.innerHTML += `<option value="${cls}">${displayClass}</option>`;
           });
           if (classes.size === 0) {
@@ -604,78 +532,62 @@
 
     function abbreviateSubject(subject) {
       const subjectMap = {
-        "Mathematics Activities": "Math",
+        "Mathematics": "Math",
         "Agriculture": "Agric",
-        "English Activities": "Eng",
-        "Kiswahili Activities": "Kisw",
-        "Integrated Science": "Sci",
+        "English": "Eng",
+        "Kiswahili": "Kisw",
+        "Science": "Sci",
         "Social Studies": "Soc",
         "Creative Arts": "Crea",
-        "CRE": "Rel",
-        "Pre-Technical Studies": "Tech",
-        "Language Activities": "Lang",
-        "Environmental Activities": "Env",
-        "Literacy Activities": "Lit"
+        "Religious Education": "Rel",
+        "Physical Education": "P.E"
       };
       return subjectMap[subject] || subject.slice(0, 4);
     }
 
     function loadResults() {
-      const termSelect = document.getElementById("termSelect").value;
       const assessmentType = document.getElementById("assessmentType").value;
       const className = document.getElementById("classSelect").value;
       const resultsTable = document.getElementById("resultsTable");
       const pdfButton = document.getElementById("pdfButton");
-      const reportCardsButton = document.getElementById("reportCardsButton");
       const summaryDiv = document.getElementById("summary");
       const topPerformersDiv = document.getElementById("topPerformers");
-      const subjectPerformanceDiv = document.getElementById("subjectPerformance");
-      const subjectPerformanceTable = document.getElementById("subjectPerformanceTable");
       const teacherName = document.getElementById("teacherName").textContent;
 
-      if (!termSelect || !assessmentType || !className) {
-        showMessage("resultsMessage", "Please select term, assessment type, and class.", true);
+      if (!assessmentType || !className) {
+        showMessage("resultsMessage", "Please select both assessment type and class.", true);
         resultsTable.innerHTML = "";
         summaryDiv.innerHTML = "";
         topPerformersDiv.style.display = "none";
-        subjectPerformanceDiv.style.display = "none";
         pdfButton.disabled = true;
-        reportCardsButton.disabled = true;
         return;
       }
 
-      const displayClass = className.replace(/^(playgroup|preprimary|grade)/, match => ({
-        playgroup: "Playgroup",
-        preprimary: "Pre-Primary ",
-        grade: "Grade "
-      }[match])).replace(/(\d)$/, " $1");
+      let dbKey = assessmentType;
+      if (assessmentType === "endterm") {
+        dbKey = "exam";
+      }
+
+      const displayClass = className.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1");
       const assessmentLabel = assessmentType === "cat" ? "CAT (Mid-Term)" : "End-Term Exam";
 
       document.getElementById("loadingScreen").classList.remove("hidden");
       resultsTable.innerHTML = "";
       summaryDiv.innerHTML = "";
       topPerformersDiv.style.display = "none";
-      subjectPerformanceDiv.style.display = "none";
       pdfButton.disabled = true;
-      reportCardsButton.disabled = true;
 
       db.ref("users/students").once("value")
         .then(snapshot => {
           const students = snapshot.val() || {};
           const results = [];
           const subjects = new Set();
-          const subjectTotals = {};
-          const subjectCounts = {};
 
           Object.entries(students).forEach(([regNo, student]) => {
-            if (student.form === className && student.academics && student.academics[termSelect] && student.academics[termSelect][assessmentType]) {
-              const marks = student.academics[termSelect][assessmentType];
+            if (student.form === className && student.academics && student.academics.term1 && student.academics.term1[dbKey]) {
+              const marks = student.academics.term1[dbKey];
               const totalMarks = Object.values(marks).reduce((sum, mark) => sum + (Number(mark) || 0), 0);
-              Object.keys(marks).forEach(subject => {
-                subjects.add(subject);
-                subjectTotals[subject] = (subjectTotals[subject] || 0) + (Number(marks[subject]) || 0);
-                subjectCounts[subject] = (subjectCounts[subject] || 0) + (marks[subject] !== '' ? 1 : 0);
-              });
+              Object.keys(marks).forEach(subject => subjects.add(subject));
               results.push({
                 name: student.profile.name,
                 regNo,
@@ -686,11 +598,10 @@
           });
 
           if (results.length === 0) {
-            showMessage("resultsMessage", `No results found for ${displayClass} in ${assessmentLabel} for ${termSelect.replace('term', 'Term ')}.`, true);
+            showMessage("resultsMessage", `No results found for ${displayClass} in ${assessmentLabel}.`, true);
             resultsTable.innerHTML = "";
             summaryDiv.innerHTML = "";
             topPerformersDiv.style.display = "none";
-            subjectPerformanceDiv.style.display = "none";
             document.getElementById("loadingScreen").classList.add("hidden");
             return;
           }
@@ -702,10 +613,9 @@
             <table>
               <thead>
                 <tr>
-                  <th>Position</th>
+                  <th>Rank</th>
                   <th>Name</th>
-                  <th>Reg No</th>
-                  <th>Total</th>
+                  <th>Tot</th>
                   ${sortedSubjects.map(subject => `
                     <th>${abbreviateSubject(subject)}</th>
                     <th>Rub</th>
@@ -723,7 +633,6 @@
               <tr>
                 <td>${index + 1}</td>
                 <td>${student.name}</td>
-                <td>${student.regNo}</td>
                 <td>${student.totalMarks.toFixed(1)}</td>
                 ${sortedSubjects.map(subject => {
                   const mark = student.marks[subject] || 0;
@@ -738,40 +647,16 @@
             `;
           });
 
-          const subjectSummary = sortedSubjects.map(subject => {
-            const total = subjectTotals[subject] || 0;
-            const count = subjectCounts[subject] || 1;
-            const mean = (total / count).toFixed(1);
-            return { subject, total, mean: parseFloat(mean) };
-          }).sort((a, b) => b.mean - a.mean);
-
           tableHTML += `
-              <tr>
-                <td colspan="3">Class Total</td>
-                <td>${totalClassMarks.toFixed(1)}</td>
-                ${sortedSubjects.map(subject => {
-                  const total = subjectTotals[subject] || 0;
-                  return `<td>${total.toFixed(1)}</td><td></td><td></td>`;
-                }).join('')}
-              </tr>
-              <tr>
-                <td colspan="3">Class Mean</td>
-                <td>${(totalClassMarks / results.length).toFixed(1)}</td>
-                ${sortedSubjects.map(subject => {
-                  const total = subjectTotals[subject] || 0;
-                  const count = subjectCounts[subject] || 1;
-                  const mean = (total / count).toFixed(1);
-                  return `<td>${mean}</td><td></td><td></td>`;
-                }).join('')}
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
           `;
 
           const mean = totalClassMarks / results.length;
           const average = mean.toFixed(1);
           summaryDiv.innerHTML = `<i class="fas fa-chart-bar"></i>Class Mean: ${average} | Class Average: ${average} | Total Students: ${results.length}`;
 
+          // Top Performers
           let topHTML = '';
           const topCount = Math.min(3, results.length);
           for (let i = 0; i < topCount; i++) {
@@ -780,38 +665,12 @@
           topPerformersDiv.querySelector('ul').innerHTML = topHTML;
           topPerformersDiv.style.display = "block";
 
-          let subjectPerformanceHTML = `
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Subject</th>
-                <th>Total Marks</th>
-                <th>Mean Score</th>
-              </tr>
-            </thead>
-            <tbody>
-          `;
-          subjectSummary.forEach((sub, index) => {
-            subjectPerformanceHTML += `
-              <tr>
-                <td>${index + 1}</td>
-                <td>${sub.subject}</td>
-                <td>${sub.total.toFixed(1)}</td>
-                <td>${sub.mean.toFixed(1)}</td>
-              </tr>
-            `;
-          });
-          subjectPerformanceHTML += `</tbody>`;
-          subjectPerformanceTable.innerHTML = subjectPerformanceHTML;
-          subjectPerformanceDiv.style.display = "block";
-
           resultsTable.innerHTML = tableHTML;
           pdfButton.disabled = false;
-          reportCardsButton.disabled = false;
-          showMessage("resultsMessage", `Dear ${teacherName}, we found the results for ${displayClass} in ${assessmentLabel} for ${termSelect.replace('term', 'Term ')}.`, false);
+          showMessage("resultsMessage", `Dear ${teacherName}, we found the results for ${displayClass} in ${assessmentLabel}.`, false);
           document.getElementById("loadingScreen").classList.add("hidden");
 
-          window.currentResults = { results, sortedSubjects, className, assessmentType, termSelect, mean, average, subjectSummary };
+          window.currentResults = { results, sortedSubjects, className, assessmentType, mean, average };
         })
         .catch(error => {
           console.error("Load results error:", error);
@@ -826,15 +685,12 @@
         return;
       }
 
-      const { results, sortedSubjects, className, assessmentType, termSelect, mean, average, subjectSummary } = window.currentResults;
+      const { results, sortedSubjects, className, assessmentType, mean, average } = window.currentResults;
       const assessmentLabel = assessmentType === "cat" ? "CAT (Mid-Term)" : "End-Term Exam";
-      const displayClass = className.replace(/^(playgroup|preprimary|grade)/, match => ({
-        playgroup: "Playgroup",
-        preprimary: "Pre-Primary ",
-        grade: "Grade "
-      }[match])).replace(/(\d)$/, " $1");
+      const displayClass = className.replace(/^(preprimary|grade)/, match => match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1");
 
-      const headers = ["Position", "Name", "Reg No", "Total"];
+      // Prepare data for PDF
+      const headers = ["Rank", "Name", "Tot"];
       const subHeaders = sortedSubjects.reduce((acc, subject) => {
         const abbrSubject = abbreviateSubject(subject);
         return [...acc, abbrSubject, "Rub", "Out"];
@@ -846,7 +702,6 @@
         const row = [
           index + 1,
           student.name,
-          student.regNo,
           student.totalMarks.toFixed(1)
         ];
         sortedSubjects.forEach(subject => {
@@ -857,22 +712,7 @@
         return row;
       });
 
-      const totalRow = ["", "Class Total", "", results.reduce((sum, s) => sum + s.totalMarks, 0).toFixed(1)];
-      sortedSubjects.forEach(subject => {
-        const total = results.reduce((sum, s) => sum + (Number(s.marks[subject]) || 0), 0);
-        totalRow.push(total.toFixed(1), "", "");
-      });
-
-      const meanRow = ["", "Class Mean", "", (results.reduce((sum, s) => sum + s.totalMarks, 0) / results.length).toFixed(1)];
-      sortedSubjects.forEach(subject => {
-        const total = results.reduce((sum, s) => sum + (Number(s.marks[subject]) || 0), 0);
-        const count = results.filter(s => s.marks[subject] !== '').length || 1;
-        const mean = (total / count).toFixed(1);
-        meanRow.push(mean, "", "");
-      });
-
-      data.push(totalRow, meanRow);
-
+      // Grading table for reference
       const gradingHeaders = ["Score Range", "Rubric", "Outcome"];
       const gradingData = gradingTable.map(g => [
         `${g.range[0]}–${g.range[1]}`,
@@ -880,317 +720,81 @@
         g.outcome.toFixed(1)
       ]);
 
-      const subjectHeaders = ["Rank", "Subject", "Total Marks", "Mean Score"];
-      const subjectData = subjectSummary.map((sub, index) => [
-        index + 1,
-        sub.subject,
-        sub.total.toFixed(1),
-        sub.mean.toFixed(1)
-      ]);
-
+      // Create PDF
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape' });
 
-      // Enhanced Header Template - Black and White
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(20);
+      // Add header
+      doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("MACS SCHOOLS EA", 148.5, 12, { align: 'center' });
-      doc.setFontSize(10);
+      doc.text("MACS SCHOOLS EA – Class Results", 14, 20);
+      doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
-      doc.text("Excellence in Education | P.O. Box 114-40503 Gesima | Tel: 0112750147 | Email: info@macsschools.co.ke", 148.5, 18, { align: 'center' });
+      doc.text(`Class: ${displayClass} | Assessment: ${assessmentLabel}`, 14, 30);
+      doc.text(`Date: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 14, 38);
 
-      // Subheader
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("CLASS RESULTS REPORT", 14, 35);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Class: ${displayClass} | Term: ${termSelect.replace('term', 'Term ')} | Assessment: ${assessmentLabel}`, 14, 42);
-      doc.text(`Generated on: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 14, 48);
-
-      // Decorative line - Black
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(1);
-      doc.line(14, 52, 283, 52);
-
+      // Main results table
       doc.autoTable({
-        startY: 55,
+        startY: 45,
         head: [fullHeaders],
         body: data,
         theme: 'grid',
-        styles: { 
-          fontSize: 7, 
-          cellPadding: 2, 
-          overflow: 'linebreak', 
-          font: 'helvetica',
-          lineColor: [0, 0, 0],
-          lineWidth: 0.5,
-          fillColor: [255, 255, 255]
-        },
-        headStyles: { 
-          fillColor: [0, 0, 0], 
-          textColor: [255, 255, 255], 
-          fontStyle: 'bold',
-          lineColor: [0, 0, 0],
-          lineWidth: 1
-        },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
+        styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak', font: 'helvetica' },
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
         columnStyles: {
-          0: { cellWidth: 10 },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 15 },
-          3: { cellWidth: 10 },
+          0: { cellWidth: 8 }, // Rank
+          1: { cellWidth: 25 }, // Name
+          2: { cellWidth: 8 }, // Total Marks
           ...sortedSubjects.reduce((acc, _, i) => ({
             ...acc,
-            [4 + i * 3]: { cellWidth: 8 },
-            [5 + i * 3]: { cellWidth: 8 },
-            [6 + i * 3]: { cellWidth: 8 }
+            [3 + i * 3]: { cellWidth: 7 },
+            [4 + i * 3]: { cellWidth: 7 },
+            [5 + i * 3]: { cellWidth: 7 }
           }), {})
         },
         margin: { left: 14, right: 14 }
       });
 
-      const finalY = doc.lastAutoTable.finalY || 55;
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "bold");
-      doc.text("SUMMARY", 14, finalY + 10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Class Mean: ${average} | Class Average: ${average} | Total Students: ${results.length}`, 14, finalY + 18);
-
-      // Signatures Section
-      doc.setFontSize(8);
-      const sigY = finalY + 30;
-      doc.setDrawColor(0, 0, 0);
-      doc.line(14, sigY, 283, sigY);
-      doc.setTextColor(0, 0, 0);
-      doc.text("Approved by:", 14, sigY + 5);
-      doc.text("___________________________", 14, sigY + 10);
-      doc.text("Mad Annah Moraa", 14, sigY + 15);
-      doc.text("Director of Studies", 14, sigY + 20);
-      doc.text("___________________________", 200, sigY + 10);
-      doc.text("Jared Moinani", 200, sigY + 15);
-      doc.text("Head Teacher", 200, sigY + 20);
-
-      doc.addPage();
-      // Grading Table Page
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(20);
-      doc.setFont("helvetica", "bold");
-      doc.text("GRADING SCALE & PERFORMANCE SUMMARY", 148.5, 12, { align: 'center' });
+      // Add summary
+      const finalY = doc.lastAutoTable.finalY || 45;
       doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text("MACS SCHOOLS EA | Excellence in Education", 148.5, 18, { align: 'center' });
+      doc.text(`Class Mean: ${average} | Class Average: ${average} | Total Students: ${results.length}`, 14, finalY + 10);
 
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(1);
-      doc.line(14, 30, 283, 30);
+      // Add signature section
+      doc.setFontSize(10);
+      doc.text("___________________________", 14, finalY + 30);
+      doc.text("Mad Annah Moraa", 14, finalY + 38);
+      doc.text("Director of Studies", 14, finalY + 46);
+      doc.text("___________________________", 150, finalY + 30);
+      doc.text("Jared Moinani", 150, finalY + 38);
+      doc.text("Head Teacher", 150, finalY + 46);
+
+      // Add new page for grading table
+      doc.addPage();
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("MACS SCHOOLS – Results Grading Table", 14, 20);
+      doc.setFont("helvetica", "normal");
 
       doc.autoTable({
-        startY: 35,
+        startY: 30,
         head: [gradingHeaders],
         body: gradingData,
         theme: 'grid',
-        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [0, 0, 0], lineWidth: 0.5 },
-        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50 } },
+        styles: { fontSize: 9, cellPadding: 3, font: 'helvetica' },
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 15 }, 2: { cellWidth: 15 } },
         margin: { left: 14, right: 14 }
       });
 
-      const gradingFinalY = doc.lastAutoTable.finalY || 35;
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("SUBJECT PERFORMANCE SUMMARY", 14, gradingFinalY + 15);
-      doc.setFont("helvetica", "normal");
-
-      doc.autoTable({
-        startY: gradingFinalY + 25,
-        head: [subjectHeaders],
-        body: subjectData,
-        theme: 'grid',
-        styles: { fontSize: 10, cellPadding: 4, font: 'helvetica', lineColor: [0, 0, 0], lineWidth: 0.5 },
-        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50 }, 3: { cellWidth: 50 } },
-        margin: { left: 14, right: 14 }
-      });
-
-      // Footer for all pages
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(128, 128, 128);
-        doc.text(`Page ${i} of ${pageCount} | Confidential - For Official Use Only`, 148.5, 290, { align: 'center' });
-      }
-
+      // Generate and download PDF file
       document.getElementById("loadingScreen").classList.remove("hidden");
       try {
-        doc.save(`MACS_Schools_${className}_${termSelect}_${assessmentType}_Results_${new Date().toISOString().split("T")[0]}.pdf`);
+        doc.save(`MACS_Schools_${className}_${assessmentType}_Results_${new Date().toISOString().split("T")[0]}.pdf`);
         showMessage("resultsMessage", "PDF file generated successfully!", false);
       } catch (error) {
         console.error("PDF generation error:", error);
         showMessage("resultsMessage", `Failed to generate PDF: ${error.message}`, true);
-      } finally {
-        document.getElementById("loadingScreen").classList.add("hidden");
-      }
-    }
-
-    function generateReportCardsPDF() {
-      if (!window.currentResults) {
-        showMessage("resultsMessage", "No results to generate report cards.", true);
-        return;
-      }
-
-      const { results, sortedSubjects, className, assessmentType, termSelect } = window.currentResults;
-      const assessmentLabel = assessmentType === "cat" ? "CAT (Mid-Term)" : "End-Term Exam";
-      const displayClass = className.replace(/^(playgroup|preprimary|grade)/, match => ({
-        playgroup: "Playgroup",
-        preprimary: "Pre-Primary ",
-        grade: "Grade "
-      }[match])).replace(/(\d)$/, " $1");
-      const numSubjects = sortedSubjects.length;
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('p', 'mm', 'a4');
-
-      document.getElementById("loadingScreen").classList.remove("hidden");
-
-      try {
-        results.forEach((student, index) => {
-          if (index > 0) {
-            doc.addPage();
-          }
-
-          // Enhanced Report Card Header Template - Black and White
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(18);
-          doc.setFont("helvetica", "bold");
-          doc.text("MACS SCHOOLS EA", 105, 15, { align: 'center' });
-          doc.setFontSize(10);
-          doc.setFont("helvetica", "normal");
-          doc.text("GODLINESS + HARDWORK = SUCCESS | P.O. Box 114-40503 Gesima | Tel: 0112750147", 105, 22, { align: 'center' });
-
-          // Decorative line - Black
-          doc.setDrawColor(0, 0, 0);
-          doc.setLineWidth(1.5);
-          doc.line(10, 32, 200, 32);
-
-          // Student Details - Balanced spacing
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "bold");
-          doc.text("STUDENT REPORT CARD", 105, 40, { align: 'center' });
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "normal");
-          doc.text(`Student Name: ${student.name}`, 20, 50);
-          doc.text(`Registration No: ${student.regNo}`, 20, 57);
-          doc.text(`Class: ${displayClass}`, 20, 64);
-          doc.text(`Term: ${termSelect.replace('term', 'Term ')}`, 20, 71);
-          doc.text(`Assessment: ${assessmentLabel}`, 20, 78);
-          doc.text(`Date: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })}`, 20, 85);
-
-          // Marks Table - Adjusted startY for balance
-          const reportHeaders = ["Subject", "Mark (%)", "Rubric", "Outcome"];
-          const reportData = sortedSubjects.map(subject => {
-            const mark = student.marks[subject] || 0;
-            const grade = getGradeDetails(mark);
-            return [subject, mark.toString(), grade.rubric, grade.outcome.toFixed(1)];
-          });
-
-          doc.autoTable({
-            startY: 92,
-            head: [reportHeaders],
-            body: reportData,
-            theme: 'grid',
-            styles: { 
-              fontSize: 8, 
-              cellPadding: 3, 
-              overflow: 'linebreak', 
-              font: 'helvetica',
-              lineColor: [0, 0, 0],
-              lineWidth: 0.5,
-              fillColor: [255, 255, 255]
-            },
-            headStyles: { 
-              fillColor: [0, 0, 0], 
-              textColor: [255, 255, 255], 
-              fontStyle: 'bold',
-              lineColor: [0, 0, 0],
-              lineWidth: 1
-            },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-            columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 20 }, 2: { cellWidth: 30 }, 3: { cellWidth: 20 } },
-            margin: { left: 20, right: 20 }
-          });
-
-          const tableFinalY = doc.lastAutoTable.finalY || 92;
-
-          // Performance Summary - On white surface, black border, balanced spacing
-          const total = student.totalMarks.toFixed(1);
-          const mean = (student.totalMarks / numSubjects).toFixed(1);
-          const position = index + 1;
-          const comment = getComment(parseFloat(mean));
-
-          // Draw a black border for the summary box
-          doc.setDrawColor(0, 0, 0);
-          doc.setLineWidth(0.5);
-          doc.rect(20, tableFinalY + 10, 170, 50);
-
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(10);
-          doc.setFont("helvetica", "bold");
-          doc.text("PERFORMANCE SUMMARY", 30, tableFinalY + 20);
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(9);
-          doc.text(`Total Marks: ${total}`, 30, tableFinalY + 28);
-          doc.text(`Mean Score: ${mean}%`, 30, tableFinalY + 35);
-          doc.text(`Position: ${position} out of ${results.length}`, 30, tableFinalY + 42);
-          doc.setFont("helvetica", "bold");
-          doc.text("Teacher's Comment:", 30, tableFinalY + 49);
-          doc.setFont("helvetica", "normal");
-          doc.text(comment, 30, tableFinalY + 56, { maxWidth: 150 });
-
-          // Signatures - Adjusted for better balance and spacing
-          const sigY = tableFinalY + 70;
-          doc.setDrawColor(0, 0, 0);
-          doc.setLineWidth(1);
-          doc.line(20, sigY, 90, sigY);
-          doc.line(120, sigY, 190, sigY);
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          doc.text("Class Teacher's Signature:", 25, sigY + 8);
-          doc.text("___________________________", 25, sigY + 15);
-          doc.text("Parent/Guardian's Signature:", 125, sigY + 8);
-          doc.text("___________________________", 125, sigY + 15);
-
-          // Additional approvals below with more space
-          const approvalY = sigY + 35;
-          doc.setDrawColor(0, 0, 0);
-          doc.line(20, approvalY, 90, approvalY);
-          doc.line(120, approvalY, 190, approvalY);
-          doc.setTextColor(0, 0, 0);
-          doc.text("Director of Studies:", 25, approvalY + 8);
-          doc.text("Mad Annah Moraa", 25, approvalY + 15);
-          doc.text("___________________________", 25, approvalY + 22);
-          doc.text("Head Teacher:", 125, approvalY + 8);
-          doc.text("Jared Moinani", 125, approvalY + 15);
-          doc.text("___________________________", 125, approvalY + 22);
-
-          // Footer - Ensure it doesn't overlap
-          const footerY = Math.max(270, approvalY + 40);
-          doc.setTextColor(128, 128, 128);
-          doc.setFontSize(7);
-          doc.text("Confidential - MACS Schools EA | For Official Student Records Only", 105, footerY, { align: 'center' });
-        });
-
-        doc.save(`MACS_ReportCards_${className}_${termSelect}_${assessmentType}_${new Date().toISOString().split("T")[0]}.pdf`);
-        showMessage("resultsMessage", "Report Cards PDF generated successfully!", false);
-      } catch (error) {
-        console.error("Report Cards PDF generation error:", error);
-        showMessage("resultsMessage", `Failed to generate Report Cards PDF: ${error.message}`, true);
       } finally {
         document.getElementById("loadingScreen").classList.add("hidden");
       }
