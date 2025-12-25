@@ -97,10 +97,6 @@
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
       z-index: 1001;
       display: none;
-      width: 90%;
-      max-width: 600px;
-      max-height: 80vh;
-      overflow-y: auto;
     }
     .popup-overlay {
       position: fixed;
@@ -166,7 +162,7 @@
       background: #edf2f7;
       transition: background 0.2s;
     }
-    .search-bar, select, input, textarea {
+    .search-bar, select {
       width: 100%;
       max-width: 300px;
       padding: 12px;
@@ -176,7 +172,7 @@
       font-size: 16px;
       transition: border-color 0.3s, box-shadow 0.3s;
     }
-    .search-bar:focus, select:focus, input:focus, textarea:focus {
+    .search-bar:focus, select:focus {
       border-color: #2b6cb0;
       box-shadow: 0 0 5px rgba(43, 108, 176, 0.3);
       outline: none;
@@ -187,71 +183,31 @@
       flex-wrap: wrap;
       margin-bottom: 20px;
     }
-    .pdf-btn, .edit-btn {
+    .pdf-btn {
       padding: 8px 15px;
+      background: #38a169;
       color: #fff;
       border: none;
       border-radius: 5px;
       cursor: pointer;
       transition: background 0.3s;
-      margin-right: 5px;
-    }
-    .pdf-btn {
-      background: #38a169;
     }
     .pdf-btn:hover {
       background: #2f855a;
     }
-    .edit-btn {
+    .promote-btn {
+      padding: 12px 20px;
       background: #2b6cb0;
-    }
-    .edit-btn:hover {
-      background: #1a4971;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-    .form-grid label {
-      font-weight: 600;
-      margin-bottom: 5px;
-      display: block;
-    }
-    .form-grid input, .form-grid select, .form-grid textarea {
-      width: 100%;
-      max-width: none;
-    }
-    .form-grid textarea {
-      height: 80px;
-      resize: vertical;
-    }
-    .form-buttons {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      margin-top: 20px;
-    }
-    .save-btn, .cancel-btn {
-      padding: 10px 20px;
+      color: #fff;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 16px;
+      transition: background 0.3s;
+      margin-bottom: 15px;
     }
-    .save-btn {
-      background: #38a169;
-      color: #fff;
-    }
-    .save-btn:hover {
-      background: #2f855a;
-    }
-    .cancel-btn {
-      background: #e53e3e;
-      color: #fff;
-    }
-    .cancel-btn:hover {
-      background: #c53030;
+    .promote-btn:hover {
+      background: #1e40af;
     }
   </style>
 </head>
@@ -261,118 +217,6 @@
   </div>
   <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()"></div>
   <div class="popup" id="popupMessage"></div>
-  <div class="popup" id="editStudentPopup">
-    <h2>Edit Student</h2>
-    <div class="form-grid">
-      <div>
-        <label for="editRegNo">Registration No</label>
-        <input type="text" id="editRegNo" readonly>
-      </div>
-      <div>
-        <label for="editName">Full Name</label>
-        <input type="text" id="editName" required>
-      </div>
-      <div>
-        <label for="editGender">Gender</label>
-        <select id="editGender" required>
-          <option value="">Select Gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div>
-        <label for="editReligion">Religion</label>
-        <input type="text" id="editReligion">
-      </div>
-      <div>
-        <label for="editForm">Class</label>
-        <select id="editForm" required>
-          <option value="">Select Class</option>
-          <option value="playgroup">Play Group</option>
-          <option value="preprimary1">Pre-Primary 1</option>
-          <option value="preprimary2">Pre-Primary 2</option>
-          <option value="grade1">Grade 1</option>
-          <option value="grade2">Grade 2</option>
-          <option value="grade3">Grade 3</option>
-          <option value="grade4">Grade 4</option>
-          <option value="grade5">Grade 5</option>
-          <option value="grade6">Grade 6</option>
-          <option value="grade7">Grade 7</option>
-          <option value="grade8">Grade 8</option>
-          <option value="grade9">Grade 9</option>
-        </select>
-      </div>
-      <div>
-        <label for="editStream">Stream</label>
-        <input type="text" id="editStream" required>
-      </div>
-      <div>
-        <label for="editPhone">Phone</label>
-        <input type="text" id="editPhone">
-      </div>
-      <div>
-        <label for="editEmail">Email</label>
-        <input type="email" id="editEmail">
-      </div>
-      <div>
-        <label for="editPassword">New Password (leave blank to keep current)</label>
-        <input type="password" id="editPassword">
-      </div>
-      <div>
-        <label for="editEmergencyContact">Emergency Contact</label>
-        <input type="text" id="editEmergencyContact">
-      </div>
-      <div>
-        <label for="editParentName">Parent Name</label>
-        <input type="text" id="editParentName">
-      </div>
-      <div>
-        <label for="editParentPhone">Parent Phone</label>
-        <input type="text" id="editParentPhone">
-      </div>
-      <div>
-        <label for="editParentEmail">Parent Email</label>
-        <input type="email" id="editParentEmail">
-      </div>
-      <div>
-        <label for="editParentOccupation">Parent Occupation</label>
-        <input type="text" id="editParentOccupation">
-      </div>
-      <div>
-        <label for="editParentMaritalStatus">Parent Marital Status</label>
-        <input type="text" id="editParentMaritalStatus">
-      </div>
-      <div>
-        <label for="editGuardianRelationship">Guardian Relationship</label>
-        <input type="text" id="editGuardianRelationship">
-      </div>
-      <div>
-        <label for="editCounty">County</label>
-        <input type="text" id="editCounty">
-      </div>
-      <div>
-        <label for="editAddress">Address</label>
-        <input type="text" id="editAddress">
-      </div>
-      <div>
-        <label for="editTown">Town</label>
-        <input type="text" id="editTown">
-      </div>
-      <div>
-        <label for="editSponsor">Sponsor</label>
-        <input type="text" id="editSponsor">
-      </div>
-      <div>
-        <label for="editTotalExpected">Total Expected Fees (KES)</label>
-        <input type="number" id="editTotalExpected" min="0" step="0.01">
-      </div>
-    </div>
-    <div class="form-buttons">
-      <button class="cancel-btn" onclick="hidePopup()">Cancel</button>
-      <button class="save-btn" onclick="saveStudent()">Save</button>
-    </div>
-  </div>
   <div class="container">
     <div class="sidebar">
       <div class="profile">
@@ -410,6 +254,22 @@
           <select id="streamSelect" onchange="loadStudents()">
             <option value="">All Streams</option>
           </select>
+          <select id="promoteToSelect">
+            <option value="">Promote to...</option>
+            <option value="playgroup">Play Group</option>
+            <option value="preprimary1">Pre-Primary 1</option>
+            <option value="preprimary2">Pre-Primary 2</option>
+            <option value="grade1">Grade 1</option>
+            <option value="grade2">Grade 2</option>
+            <option value="grade3">Grade 3</option>
+            <option value="grade4">Grade 4</option>
+            <option value="grade5">Grade 5</option>
+            <option value="grade6">Grade 6</option>
+            <option value="grade7">Grade 7</option>
+            <option value="grade8">Grade 8</option>
+            <option value="grade9">Grade 9</option>
+          </select>
+          <button class="promote-btn" onclick="promoteStudents()"><i class="fas fa-arrow-up"></i> Promote Students</button>
         </div>
         <div id="studentsMessage" class="error-message"></div>
         <table id="studentsTable">
@@ -424,13 +284,10 @@
           </thead>
           <tbody id="studentsBody"></tbody>
         </table>
-        <div class="no-print" style="margin-top: 20px;">
-          <button class="pdf-btn" onclick="exportToPDF('students')"><i class="fas fa-file-pdf"></i> Export to PDF</button>
-        </div>
       </div>
     </div>
   </div>
-
+  <script src="common.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
@@ -441,11 +298,9 @@
       appId: "1:129785956666:web:541a08bee37c739556a803",
       databaseURL: "https://lifeflow-yhtl6-default-rtdb.firebaseio.com"
     };
-
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
-
     auth.onAuthStateChanged(user => {
       if (!user || localStorage.getItem("userType") !== "teacher") {
         localStorage.clear();
@@ -458,22 +313,6 @@
         loadStudents();
       }
     });
-
-    function showPopup(message, isError = true) {
-      const popupMessage = document.getElementById("popupMessage");
-      popupMessage.textContent = message;
-      popupMessage.className = `popup ${isError ? "error-message" : "success-message"}`;
-      document.getElementById("popupOverlay").style.display = "block";
-      popupMessage.style.display = "block";
-      setTimeout(hidePopup, isError ? 3000 : 5000);
-    }
-
-    function hidePopup() {
-      document.getElementById("popupOverlay").style.display = "none";
-      document.getElementById("popupMessage").style.display = "none";
-      document.getElementById("editStudentPopup").style.display = "none";
-    }
-
     function displayClass(form) {
       if (form === "playgroup") return "Play Group";
       const match = form.match(/^(preprimary|grade)(\d+)$/);
@@ -483,7 +322,6 @@
       }
       return form.charAt(0).toUpperCase() + form.slice(1);
     }
-
     async function loadStreams() {
       const streamSelect = document.getElementById("streamSelect");
       try {
@@ -502,18 +340,15 @@
         showPopup(`Failed to load streams: ${error.message}`, true);
       }
     }
-
     async function loadStudents() {
       const form = document.getElementById("yearSelect").value;
       const stream = document.getElementById("streamSelect").value;
       const studentsBody = document.getElementById("studentsBody");
       studentsBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
-
       try {
         const snapshot = await db.ref("users/students").once("value");
         const students = snapshot.val() || {};
         let studentsList = [];
-
         Object.keys(students).forEach(regNo => {
           const student = students[regNo];
           if (student.form === form && (!stream || student.stream === stream)) {
@@ -525,13 +360,11 @@
             });
           }
         });
-
         studentsBody.innerHTML = "";
         if (studentsList.length === 0) {
           studentsBody.innerHTML = `<tr><td colspan="5">No students found in ${displayClass(form)}${stream ? ` (${stream})` : ""}.</td></tr>`;
           return;
         }
-
         studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
         studentsList.forEach(student => {
           studentsBody.innerHTML += `<tr>
@@ -539,10 +372,7 @@
             <td>${student.name}</td>
             <td>${student.stream}</td>
             <td>${displayClass(student.form)}</td>
-            <td>
-              <button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button>
-              <button class="edit-btn" onclick="editStudent('${student.regNo}')"><i class="fas fa-edit"></i> Edit</button>
-            </td>
+            <td><button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button></td>
           </tr>`;
         });
       } catch (error) {
@@ -551,22 +381,18 @@
         showPopup(`Error: ${error.message}`, true);
       }
     }
-
-    async function searchStudents() {
+    function searchStudents() {
       const searchTerm = document.getElementById("searchStudent").value.toLowerCase();
       const form = document.getElementById("yearSelect").value;
       const stream = document.getElementById("streamSelect").value;
       const studentsBody = document.getElementById("studentsBody");
       studentsBody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
-
-      try {
-        const snapshot = await db.ref("users/students").once("value");
+      db.ref("users/students").once("value", (snapshot) => {
         const students = snapshot.val() || {};
         let studentsList = [];
-
         Object.keys(students).forEach(regNo => {
           const student = students[regNo];
-          if (student.form === form && (!stream || student.stream === stream) && 
+          if (student.form === form && (!stream || student.stream === stream) &&
               (student.profile.name.toLowerCase().includes(searchTerm) || regNo.toLowerCase().includes(searchTerm))) {
             studentsList.push({
               regNo,
@@ -576,13 +402,11 @@
             });
           }
         });
-
         studentsBody.innerHTML = "";
         if (studentsList.length === 0) {
           studentsBody.innerHTML = `<tr><td colspan="5">No students found matching '${searchTerm}' in ${displayClass(form)}${stream ? ` (${stream})` : ""}.</td></tr>`;
           return;
         }
-
         studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
         studentsList.forEach(student => {
           studentsBody.innerHTML += `<tr>
@@ -590,147 +414,59 @@
             <td>${student.name}</td>
             <td>${student.stream}</td>
             <td>${displayClass(student.form)}</td>
-            <td>
-              <button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button>
-              <button class="edit-btn" onclick="editStudent('${student.regNo}')"><i class="fas fa-edit"></i> Edit</button>
-            </td>
+            <td><button class="pdf-btn" onclick="downloadStudentPDF('${student.regNo}')"><i class="fas fa-file-pdf"></i> PDF</button></td>
           </tr>`;
         });
-      } catch (error) {
-        console.error("Search students error:", error);
+      }).catch(error => {
         studentsBody.innerHTML = `<tr><td colspan="5">Failed to search students: ${error.message}</td></tr>`;
         showPopup(`Error: ${error.message}`, true);
-      }
+      });
     }
+    async function promoteStudents() {
+      const currentForm = document.getElementById("yearSelect").value;
+      const newForm = document.getElementById("promoteToSelect").value;
+      const stream = document.getElementById("streamSelect").value;
 
-    async function editStudent(regNo) {
-      console.log(`Editing student: ${regNo}`);
-      document.getElementById("loadingScreen").classList.remove("hidden");
-      try {
-        const normalizedRegNo = regNo.replace(/\//g, "_");
-        const snapshot = await db.ref(`users/students/${normalizedRegNo}`).once("value");
-        const student = snapshot.val() || {};
-
-        // Populate form fields
-        document.getElementById("editRegNo").value = regNo;
-        document.getElementById("editName").value = student.profile?.name || "";
-        document.getElementById("editGender").value = student.profile?.gender || "";
-        document.getElementById("editReligion").value = student.profile?.religion || "";
-        document.getElementById("editForm").value = student.form || "";
-        document.getElementById("editStream").value = student.stream || "";
-        document.getElementById("editPhone").value = student.profile?.phone || "";
-        document.getElementById("editEmail").value = student.profile?.email || "";
-        document.getElementById("editEmergencyContact").value = student.profile?.emergencyContact || "";
-        document.getElementById("editParentName").value = student.profile?.parentName || "";
-        document.getElementById("editParentPhone").value = student.profile?.parentPhone || "";
-        document.getElementById("editParentEmail").value = student.profile?.parentEmail || "";
-        document.getElementById("editParentOccupation").value = student.profile?.parentOccupation || "";
-        document.getElementById("editParentMaritalStatus").value = student.profile?.parentMaritalStatus || "";
-        document.getElementById("editGuardianRelationship").value = student.profile?.guardianRelationship || "";
-        document.getElementById("editCounty").value = student.profile?.county || "";
-        document.getElementById("editAddress").value = student.profile?.address || "";
-        document.getElementById("editTown").value = student.profile?.town || "";
-        document.getElementById("editSponsor").value = student.fees?.sponsor || "";
-        document.getElementById("editTotalExpected").value = student.fees?.totalExpected || "";
-        document.getElementById("editPassword").value = ""; // Leave blank for security
-
-        document.getElementById("popupOverlay").style.display = "block";
-        document.getElementById("editStudentPopup").style.display = "block";
-      } catch (error) {
-        console.error("Load student for edit error:", error);
-        showPopup(`Failed to load student data: ${error.message}`, true);
-      } finally {
-        document.getElementById("loadingScreen").classList.add("hidden");
+      if (!newForm || newForm === currentForm) {
+        showPopup("Please select a different class to promote to.", true);
+        return;
       }
-    }
 
-    async function saveStudent() {
-      console.log("Saving student data");
+      const confirmMessage = `Are you sure you want to promote all students in ${displayClass(currentForm)}${stream ? ` (${stream})` : ""} to ${displayClass(newForm)}? Streams will remain the same.`;
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+
       document.getElementById("loadingScreen").classList.remove("hidden");
+
       try {
-        const regNo = document.getElementById("editRegNo").value;
-        const normalizedRegNo = regNo.replace(/\//g, "_");
-        const name = document.getElementById("editName").value.trim();
-        const gender = document.getElementById("editGender").value;
-        const religion = document.getElementById("editReligion").value.trim();
-        const form = document.getElementById("editForm").value;
-        const stream = document.getElementById("editStream").value.trim();
-        const phone = document.getElementById("editPhone").value.trim();
-        const email = document.getElementById("editEmail").value.trim();
-        const password = document.getElementById("editPassword").value.trim();
-        const emergencyContact = document.getElementById("editEmergencyContact").value.trim();
-        const parentName = document.getElementById("editParentName").value.trim();
-        const parentPhone = document.getElementById("editParentPhone").value.trim();
-        const parentEmail = document.getElementById("editParentEmail").value.trim();
-        const parentOccupation = document.getElementById("editParentOccupation").value.trim();
-        const parentMaritalStatus = document.getElementById("editParentMaritalStatus").value.trim();
-        const guardianRelationship = document.getElementById("editGuardianRelationship").value.trim();
-        const county = document.getElementById("editCounty").value.trim();
-        const address = document.getElementById("editAddress").value.trim();
-        const town = document.getElementById("editTown").value.trim();
-        const sponsor = document.getElementById("editSponsor").value.trim();
-        const totalExpected = parseFloat(document.getElementById("editTotalExpected").value) || 0;
-
-        // Validation
-        if (!name) {
-          showPopup("Full name is required.", true);
-          return;
-        }
-        if (!gender) {
-          showPopup("Gender is required.", true);
-          return;
-        }
-        if (!form) {
-          showPopup("Class is required.", true);
-          return;
-        }
-        if (!stream) {
-          showPopup("Stream is required.", true);
-          return;
-        }
-        if (totalExpected < 0) {
-          showPopup("Total expected fees cannot be negative.", true);
-          return;
-        }
-
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
         const updates = {};
-        updates[`profile/name`] = name;
-        updates[`profile/gender`] = gender;
-        updates[`profile/religion`] = religion || null;
-        updates[`profile/phone`] = phone || null;
-        updates[`profile/email`] = email || null;
-        updates[`profile/emergencyContact`] = emergencyContact || null;
-        updates[`profile/parentName`] = parentName || null;
-        updates[`profile/parentPhone`] = parentPhone || null;
-        updates[`profile/parentEmail`] = parentEmail || null;
-        updates[`profile/parentOccupation`] = parentOccupation || null;
-        updates[`profile/parentMaritalStatus`] = parentMaritalStatus || null;
-        updates[`profile/guardianRelationship`] = guardianRelationship || null;
-        updates[`profile/county`] = county || null;
-        updates[`profile/address`] = address || null;
-        updates[`profile/town`] = town || null;
-        updates[`form`] = form;
-        updates[`stream`] = stream;
-        updates[`fees/sponsor`] = sponsor || null;
-        updates[`fees/totalExpected`] = totalExpected;
 
-        if (password) {
-          updates[`profile/password`] = password;
+        Object.keys(students).forEach(key => {
+          const student = students[key];
+          if (student.form === currentForm && (!stream || student.stream === stream)) {
+            const normalizedKey = key.replace(/\//g, "_"); // Ensure key is normalized if needed, but since key is from DB, it's already the path key
+            updates[`${normalizedKey}/form`] = newForm;
+          }
+        });
+
+        if (Object.keys(updates).length === 0) {
+          showPopup("No students found to promote.", true);
+          return;
         }
 
-        await db.ref(`users/students/${normalizedRegNo}`).update(updates);
-        showPopup("Student data updated successfully!", false);
-        hidePopup();
-        loadStudents();
-        loadStreams(); // Update streams in case stream changed
+        await db.ref("users/students").update(updates);
+        showPopup("Students promoted successfully!", false);
+        loadStudents(); // Reload the table
       } catch (error) {
-        console.error("Save student error:", error);
-        showPopup(`Failed to save student data: ${error.message}`, true);
+        console.error("Promote students error:", error);
+        showPopup(`Failed to promote students: ${error.message}`, true);
       } finally {
         document.getElementById("loadingScreen").classList.add("hidden");
       }
     }
-
     function downloadStudentPDF(regNo) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
@@ -738,14 +474,12 @@
       const teacherName = document.getElementById("teacherName").textContent;
       const date = new Date().toLocaleDateString();
       const logoUrl = "https://img.icons8.com/color/80/000000/teacher.png";
-
       document.getElementById("loadingScreen").classList.remove("hidden");
       db.ref(`users/students/${normalizedRegNo}`).once("value", (snapshot) => {
         const student = snapshot.val() || {};
         const transactions = student.fees?.transactions || [];
         const totalPaid = Array.isArray(transactions) ? transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0) : 0;
         const balance = (student.fees?.totalExpected || 0) - totalPaid;
-
         const img = new Image();
         img.crossOrigin = "Anonymous";
         img.src = logoUrl;
@@ -766,7 +500,6 @@
         document.getElementById("loadingScreen").classList.add("hidden");
       });
     }
-
     function renderPDFContent(doc, teacherName, date, regNo, student, totalPaid, balance) {
       doc.setFillColor(229, 231, 235);
       doc.rect(0, 0, 210, 297, "F");
@@ -783,7 +516,6 @@
       doc.setTextColor(200, 200, 200);
       doc.text(`Prepared by: ${teacherName}`, 10, 35);
       doc.text(`Date: ${date}`, 160, 35);
-
       doc.setFontSize(14);
       doc.setTextColor(44, 82, 176);
       doc.setFont("helvetica", "bold");
@@ -791,7 +523,6 @@
       doc.setLineWidth(0.5);
       doc.setDrawColor(44, 82, 176);
       doc.line(10, 52, 80, 52);
-
       const profileData = [
         ["Registration No", regNo],
         ["Full Name", student.profile?.name || "N/A"],
@@ -821,7 +552,6 @@
         bodyStyles: { alternateRowStyles: { fillColor: [243, 244, 246] } },
         columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 }, 1: { cellWidth: 120 } }
       });
-
       const financialY = doc.autoTable.previous.finalY + 10;
       doc.setFontSize(14);
       doc.setTextColor(44, 82, 176);
@@ -829,7 +559,6 @@
       doc.text("Financial Details", 10, financialY);
       doc.setLineWidth(0.5);
       doc.line(10, financialY + 2, 70, financialY + 2);
-
       const financialData = [
         ["Sponsor", student.fees?.sponsor || "N/A"],
         ["Total Fees (KES)", student.fees?.totalExpected || "0"],
@@ -848,7 +577,6 @@
         bodyStyles: { alternateRowStyles: { fillColor: [243, 244, 246] } },
         columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 }, 1: { cellWidth: 120 } }
       });
-
       const signatureY = doc.autoTable.previous.finalY + 15;
       doc.setFontSize(10);
       doc.setTextColor(44, 82, 176);
@@ -860,29 +588,17 @@
       doc.setTextColor(100, 100, 100);
       doc.text("MACS Schools EA - Official Report", 10, 290);
     }
-
-    function exportToPDF(sectionId) {
-      console.log(`Exporting ${sectionId} to PDF`);
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const table = document.getElementById(`${sectionId}Table`);
-      if (!table) {
-        showPopup(`No table found for ${sectionId}`, true);
-        return;
-      }
-      doc.autoTable({ html: table });
-      doc.save(`${sectionId}.pdf`);
+    function showPopup(message, isError) {
+      const popup = document.getElementById("popupMessage");
+      popup.innerHTML = message;
+      popup.classList.add(isError ? "error-message" : "success-message");
+      popup.style.display = "block";
+      document.getElementById("popupOverlay").style.display = "block";
+      setTimeout(hidePopup, 3000);
     }
-
-    function logout() {
-      console.log("Logging out");
-      auth.signOut().then(() => {
-        localStorage.clear();
-        window.location.href = "index.html";
-      }).catch(error => {
-        console.error("Logout error:", error);
-        showPopup(`Failed to logout: ${error.message}`, true);
-      });
+    function hidePopup() {
+      document.getElementById("popupMessage").style.display = "none";
+      document.getElementById("popupOverlay").style.display = "none";
     }
   </script>
 </body>
